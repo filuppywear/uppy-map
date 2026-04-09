@@ -175,6 +175,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const storeIntentAppliedRef = useRef<number | null>(null);
+  const initialStoreApplied = useRef(false);
   const marketIntentHandledRef = useRef(false);
 
   const [mapLocation, setMapLocation] = useState<{ continent?: string; country?: string; city?: string }>({});
@@ -189,6 +190,10 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
     const next = params.toString();
     router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
   }, [pathname, router, searchParams]);
+
+  // Stable ref so callbacks don't need replaceQuery in their deps
+  const replaceQueryRef = useRef(replaceQuery);
+  useEffect(() => { replaceQueryRef.current = replaceQuery; }, [replaceQuery]);
 
   const closeAll = useCallback(() => { setCatOpen(false); setRatingOpen(false); setSearchOpen(false); setMobileMenuOpen(false); }, []);
 
@@ -410,6 +415,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
     }
 
     setSelectedStore(store);
+    replaceQueryRef.current((params) => params.set("store", String(store.id)));
   }, []);
 
   const searchResults = useMemo((): SearchResult[] => {
@@ -483,38 +489,33 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
 
   const handleMapReady = useCallback((fn: (lng: number, lat: number, zoom: number) => void) => { mapFlyTo.current = fn; }, []);
   const handleZoomOutToWorld = useCallback(() => handleGeoNavigateTo(0), [handleGeoNavigateTo]);
-  const handleCloseStore = useCallback(() => { setSelectedStore(null); }, []);
+  const handleCloseStore = useCallback(() => {
+    setSelectedStore(null);
+    storeIntentAppliedRef.current = null;
+    replaceQueryRef.current((params) => params.delete("store"));
+  }, []);
 
+  // Open store from URL only on initial page load (shared links).
+  // After that, URL is written by openStoreDetail / handleCloseStore — never read back.
   useEffect(() => {
-    if (phase !== "app" || !dataReady) return;
+    if (phase !== "app" || !dataReady || initialStoreApplied.current) return;
     if (!storeQuery) {
-      if (!selectedStore) {
-        storeIntentAppliedRef.current = null;
-      }
+      initialStoreApplied.current = true;
       return;
     }
 
     const storeId = Number(storeQuery);
     if (!Number.isFinite(storeId)) return;
-    if (selectedStore?.id === storeId || storeIntentAppliedRef.current === storeId) return;
 
     const store = allStores.find((entry) => entry.id === storeId);
-    if (!store) return;
+    if (!store) {
+      if (allStores.length > 0) initialStoreApplied.current = true;
+      return;
+    }
 
-    storeIntentAppliedRef.current = storeId;
+    initialStoreApplied.current = true;
     openStoreDetail(store, { switchView: "map" });
-  }, [allStores, dataReady, openStoreDetail, phase, selectedStore, selectedStore?.id, storeQuery]);
-
-  useEffect(() => {
-    if (phase !== "app") return;
-    const currentStoreId = searchParams.get("store");
-    const nextStoreId = selectedStore ? String(selectedStore.id) : null;
-    if (currentStoreId === nextStoreId) return;
-    replaceQuery((params) => {
-      if (nextStoreId) params.set("store", nextStoreId);
-      else params.delete("store");
-    });
-  }, [phase, replaceQuery, searchParams, selectedStore]);
+  }, [allStores, dataReady, openStoreDetail, phase, storeQuery]);
 
   return (
     <>

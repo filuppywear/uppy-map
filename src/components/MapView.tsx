@@ -451,6 +451,9 @@ function MapView({
               .setHTML(buildPopupHTML(properties))
               .addTo(map);
 
+            // Prevent Mapbox from panning/animating to fit the popup in view
+            map.stop();
+
             popupRef.current = popup;
 
             requestAnimationFrame(() => {
@@ -489,7 +492,13 @@ function MapView({
           map.on("click", "clusters-hit-area", handleClusterClick);
           map.on("click", "clusters", handleClusterClick);
 
+          let lastPinClickTime = 0;
           const handlePinClick = (event: MapLayerMouseEvent) => {
+            // Debounce: both stores-hit-area and stores-pins fire for the same click
+            const now = Date.now();
+            if (now - lastPinClickTime < 100) return;
+            lastPinClickTime = now;
+
             const feature = event.features?.[0];
             if (!feature) return;
 
