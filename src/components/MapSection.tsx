@@ -36,6 +36,12 @@ interface SearchResult {
 }
 type ViewMode = "map" | "cards";
 type Phase = "loading" | "app";
+interface OpenStoreOptions {
+  syncLocation?: boolean;
+  switchView?: ViewMode;
+  flyTo?: boolean;
+  zoom?: number;
+}
 
 /* ═══════════════════════════════════════════════════
    LOADING SCREEN
@@ -376,8 +382,15 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
 
   const toggleCategory = useCallback((cat: string) => { setActiveCategories(prev => { const n = new Set(prev); if (n.has(cat)) n.delete(cat); else n.add(cat); return n; }); }, []);
 
-  const focusStore = useCallback((store: Store) => {
-    if (store.continent || store.country || store.city) {
+  const openStoreDetail = useCallback((store: Store, options?: OpenStoreOptions) => {
+    const {
+      syncLocation = true,
+      switchView,
+      flyTo = true,
+      zoom = 14,
+    } = options ?? {};
+
+    if (syncLocation && (store.continent || store.country || store.city)) {
       viewportLockUntil.current = Date.now() + 5000;
       setMapLocation({
         continent: store.continent || undefined,
@@ -385,10 +398,15 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
         city: store.city || undefined,
       });
     }
-    setView("map");
-    if (hasStoreCoordinates(store)) {
-      mapFlyTo.current?.(store.lng, store.lat, 14);
+
+    if (switchView) {
+      setView(switchView);
     }
+
+    if (flyTo && hasStoreCoordinates(store)) {
+      mapFlyTo.current?.(store.lng, store.lat, zoom);
+    }
+
     setSelectedStore(store);
   }, []);
 
@@ -433,7 +451,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
     viewportLockUntil.current = Date.now() + 5000;
 
     if (result.type === "store" && result.store) {
-      focusStore(result.store);
+      openStoreDetail(result.store, { switchView: "map" });
     } else if (result.type === "continent" && result.geoValue) {
       setMapLocation({ continent: result.geoValue! });
       const c = CONTINENT_CENTERS[result.geoValue!];
@@ -451,10 +469,15 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
       const matching = allStores.filter(s => s.city === result.geoValue && hasStoreCoordinates(s));
       if (matching.length) mapFlyTo.current?.(matching.reduce((a, s) => a + s.lng, 0) / matching.length, matching.reduce((a, s) => a + s.lat, 0) / matching.length, 11);
     }
-  }, [allStores, focusStore]);
-  const handleStoreSelect = useCallback((store: Store) => {
-    focusStore(store);
-  }, [focusStore]);
+  }, [allStores, openStoreDetail]);
+
+  const handleMapStoreSelect = useCallback((store: Store) => {
+    openStoreDetail(store, { syncLocation: false, flyTo: false });
+  }, [openStoreDetail]);
+
+  const handleCardStoreSelect = useCallback((store: Store) => {
+    openStoreDetail(store, { syncLocation: false, flyTo: false });
+  }, [openStoreDetail]);
 
   const handleMapReady = useCallback((fn: (lng: number, lat: number, zoom: number) => void) => { mapFlyTo.current = fn; }, []);
   const handleZoomOutToWorld = useCallback(() => handleGeoNavigateTo(0), [handleGeoNavigateTo]);
@@ -475,8 +498,8 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
     if (!store) return;
 
     storeIntentAppliedRef.current = storeId;
-    focusStore(store);
-  }, [allStores, dataReady, focusStore, phase, selectedStore?.id, storeQuery]);
+    openStoreDetail(store, { switchView: "map" });
+  }, [allStores, dataReady, openStoreDetail, phase, selectedStore?.id, storeQuery]);
 
   useEffect(() => {
     if (phase !== "app") return;
@@ -726,14 +749,14 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
           </div>
 
           <div style={{ display: view === "map" ? "block" : "none", height: "100%" }}>
-            <MapView stores={filteredStores} height="100%" visible={view === "map"} onStoreSelect={handleStoreSelect} onReady={handleMapReady} onZoomOut={handleZoomOutToWorld} onViewportChange={handleViewportChange} />
+            <MapView stores={filteredStores} height="100%" visible={view === "map"} onStoreSelect={handleMapStoreSelect} onReady={handleMapReady} onZoomOut={handleZoomOutToWorld} onViewportChange={handleViewportChange} />
           </div>
           {view === "cards" && (
             <CardsView
               stores={filteredStores}
               navStack={effectiveNav}
               onNavigate={handleGeoSelect}
-              onStoreSelect={handleStoreSelect}
+              onStoreSelect={handleCardStoreSelect}
             />
           )}
         </div>

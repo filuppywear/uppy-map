@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import { formatCategoryLabel, hasStoreCoordinates, type Store } from "@/lib/types";
 import { getStoreReviews, getMyReview, type Review } from "@/actions/reviews";
@@ -143,15 +143,29 @@ export default function StoreDetailModal({ store, onClose, isSaved = false, onTo
     }
   };
 
+  const handleBackdropMouseDown = (event: MouseEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onClose();
+  };
+
+  const handleCloseClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onClose();
+  };
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-end lg:items-center justify-center p-0 lg:p-6"
       style={{ background: "var(--overlay-dark)", backdropFilter: "blur(10px)" }}
-      onClick={onClose}
+      onMouseDown={handleBackdropMouseDown}
     >
       <div
         className="relative w-full lg:max-w-2xl max-h-[calc(100dvh-var(--sai-top))] lg:max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
         style={{ background: "#302020", boxShadow: "0 28px 80px rgba(36,27,25,0.24)", overscrollBehavior: "contain" }}
       >
         {/* Top actions — heart + close */}
@@ -161,7 +175,7 @@ export default function StoreDetailModal({ store, onClose, isSaved = false, onTo
               <svg width="16" height="16" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
             </button>
           )}
-          <button type="button" onClick={onClose} className="header-btn p-3 min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer" }}>
+          <button type="button" onClick={handleCloseClick} className="header-btn p-3 min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
