@@ -117,7 +117,7 @@ function buildGridClusters(stores: Store[], gridDeg: number) {
 function buildGeoJSON(stores: Store[]) {
   return {
     type: "FeatureCollection" as const,
-    features: stores.map((store) => ({
+    features: stores.filter(hasStoreCoordinates).map((store) => ({
       type: "Feature" as const,
       geometry: {
         type: "Point" as const,
@@ -316,6 +316,25 @@ function MapView({
 
           // --- Cluster layers (normal + hover) ---
           map.addLayer({
+            id: "clusters-hit-area",
+            type: "circle",
+            source: "stores",
+            filter: ["has", "point_count"],
+            paint: {
+              "circle-radius": [
+                "step",
+                ["get", "point_count"],
+                20,
+                10,
+                26,
+                50,
+                34,
+              ],
+              "circle-opacity": 0,
+            },
+          });
+
+          map.addLayer({
             id: "clusters",
             type: "symbol",
             source: "stores",
@@ -347,6 +366,17 @@ function MapView({
 
           // --- Pin layer (4 variants, random per store) ---
           map.addLayer({
+            id: "stores-hit-area",
+            type: "circle",
+            source: "stores",
+            filter: ["!", ["has", "point_count"]],
+            paint: {
+              "circle-radius": 18,
+              "circle-opacity": 0,
+            },
+          });
+
+          map.addLayer({
             id: "stores-pins",
             type: "symbol",
             source: "stores",
@@ -371,73 +401,77 @@ function MapView({
             },
           });
 
+          const openStorePopup = (coords: [number, number], properties: Record<string, unknown>) => {
+            popupRef.current?.remove();
+
+            const popup = new mapboxgl.Popup({
+              className: "sw-popup",
+              offset: [0, -8],
+              closeButton: true,
+              closeOnClick: true,
+              closeOnMove: false,
+              focusAfterOpen: false,
+              maxWidth: "280px",
+            })
+              .setLngLat(coords)
+              .setHTML(buildPopupHTML(properties))
+              .addTo(map);
+
+            popupRef.current = popup;
+
+            requestAnimationFrame(() => {
+              const button = popup.getElement()?.querySelector<HTMLButtonElement>(".mini-popup__btn");
+              button?.addEventListener(
+                "click",
+                (popupEvent) => {
+                  popupEvent.preventDefault();
+                  const storeId = button.dataset.storeId;
+                  const store = storesRef.current.find((entry) => String(entry.id) === storeId);
+                  if (store && onStoreSelectRef.current) {
+                    onStoreSelectRef.current(store);
+                    popup.remove();
+                  }
+                },
+                { once: true }
+              );
+            });
+          };
+
           // --- Click handlers ---
           const handleClusterClick = (event: MapLayerMouseEvent) => {
             const feature = event.features?.[0];
             if (!feature) return;
             const coords = (feature.geometry as Point).coordinates as [number, number];
             const level = getZoomLevel(map.getZoom());
-            const targetZoom = level === 0 ? ZOOM_THRESHOLDS[0] + 1.5 : 14;
-            map.flyTo({ center: coords, zoom: targetZoom, speed: 1.4, essential: true });
+            popupRef.current?.remove();
+            const targetZoom = level === 0 ? 5.5 : Math.min(map.getZoom() + 2.2, 13.8);
+            map.easeTo({ center: coords, zoom: targetZoom, duration: 850, essential: true });
           };
 
-          map.on("click", "clusters", handleClusterClick);
+          map.on("click", "clusters-hit-area", handleClusterClick);
 
           const handlePinClick = (event: MapLayerMouseEvent) => {
             const feature = event.features?.[0];
             if (!feature) return;
 
             const coords = (feature.geometry as Point).coordinates as [number, number];
-            popupRef.current?.remove();
+            openStorePopup(coords, feature.properties || {});
 
-            const showPopup = () => {
-              const popup = new mapboxgl.Popup({
-                className: "sw-popup",
-                offset: [0, -8],
-                closeButton: true,
-                closeOnClick: true,
-                maxWidth: "280px",
-              })
-                .setLngLat(coords)
-                .setHTML(buildPopupHTML(feature.properties || {}))
-                .addTo(map);
-
-              popupRef.current = popup;
-
-              requestAnimationFrame(() => {
-                const button = popup.getElement()?.querySelector(".mini-popup__btn");
-                button?.addEventListener(
-                  "click",
-                  (popupEvent) => {
-                    popupEvent.preventDefault();
-                    const storeId = (button as HTMLElement).dataset.storeId;
-                    const store = storesRef.current.find((entry) => String(entry.id) === storeId);
-                    if (store && onStoreSelectRef.current) {
-                      onStoreSelectRef.current(store);
-                      popup.remove();
-                    }
-                  },
-                  { once: true }
-                );
-              });
-            };
-
-            const targetZoom = 17;
-            if (map.getZoom() >= targetZoom) {
-              map.flyTo({ center: coords, duration: 800, essential: true });
-            } else {
-              map.flyTo({ center: coords, zoom: targetZoom, duration: 2000, essential: true });
-            }
-
-            map.once("moveend", showPopup);
+            const targetZoom = Math.max(map.getZoom(), 14.5);
+            map.easeTo({
+              center: coords,
+              zoom: targetZoom,
+              duration: map.getZoom() < 14.5 ? 950 : 420,
+              essential: true,
+            });
           };
 
-          map.on("click", "stores-pins", handlePinClick);
+          map.on("click", "stores-hit-area", handlePinClick);
 
-          map.on("mouseenter", "stores-pins", () => { map.getCanvas().style.cursor = "pointer"; });
-          map.on("mouseleave", "stores-pins", () => { map.getCanvas().style.cursor = ""; });
-          map.on("mouseenter", "clusters", () => { map.getCanvas().style.cursor = "pointer"; });
-          map.on("mouseleave", "clusters", () => { map.getCanvas().style.cursor = ""; });
+          map.on("mouseenter", "stores-hit-area", () => { map.getCanvas().style.cursor = "pointer"; });
+          map.on("mouseleave", "stores-hit-area", () => { map.getCanvas().style.cursor = ""; });
+          map.on("mouseenter", "clusters-hit-area", () => { map.getCanvas().style.cursor = "pointer"; });
+          map.on("mouseleave", "clusters-hit-area", () => { map.getCanvas().style.cursor = ""; });
         };
 
         map.on("load", async () => {
@@ -489,6 +523,7 @@ function MapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    popupRef.current?.remove();
     const source = map.getSource("stores") as GeoJSONSource | undefined;
     if (!source) return;
     const level = getZoomLevel(map.getZoom());
@@ -501,6 +536,7 @@ function MapView({
     const mobileZoom = window.innerWidth < 768 ? 1 : 1.8;
     const center = initialView?.center || [10, 20];
     const zoom = initialView?.zoom ?? mobileZoom;
+    popupRef.current?.remove();
     mapRef.current?.flyTo({ center, zoom, speed: 1.2, essential: true });
     onZoomOutRef.current?.();
   }, [initialView]);

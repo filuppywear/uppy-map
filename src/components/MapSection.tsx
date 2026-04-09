@@ -287,6 +287,19 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 20).map(([name, count]) => ({ name, count }));
   }, [currentGeoLevel, filteredStores, effectiveNav]);
 
+  const activeGeoSummary = useMemo(() => {
+    if (currentGeoLevel !== "stores" || effectiveNav.length === 0) return null;
+    const activeEntry = effectiveNav[effectiveNav.length - 1];
+    const count = filteredStores.filter((store) =>
+      effectiveNav.every((entry) => store[entry.level as keyof Store] === entry.value)
+    ).length;
+
+    return {
+      label: activeEntry.value,
+      count,
+    };
+  }, [currentGeoLevel, effectiveNav, filteredStores]);
+
   const handleGeoSelect = useCallback((level: NavLevel, value: string) => {
     viewportLockUntil.current = Date.now() + 5000;
     setMapLocation(prev => {
@@ -493,7 +506,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                 Market
               </button>
-              <button onClick={() => { handleGeoNavigateTo(0); setView("map"); closeAll(); }} className="uppercase" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "Inter, sans-serif", color: "#fff", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "4px", textDecorationThickness: "1px" }}>Map</button>
+              <button onClick={() => { handleGeoNavigateTo(0); setView("map"); closeAll(); }} className="header-btn uppercase" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "Inter, sans-serif", color: "#fff", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "4px", textDecorationThickness: "1px" }}>Map</button>
               <Link href="/leaderboard" className="header-btn uppercase" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "Inter, sans-serif", color: "rgba(255,255,255,0.7)", textDecoration: "none" }}>Leaderboard</Link>
             </nav>
 
@@ -536,20 +549,27 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
           <div className="hidden lg:flex items-center px-4 md:px-8 h-10 relative" style={{ background: "#302020", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             {/* Crumbs — left */}
             <nav className="flex items-center gap-2 shrink-0" style={{ lineHeight: 1 }}>
-              <button onClick={() => handleGeoNavigateTo(0)} className="header-btn" style={{ fontSize: "11px", letterSpacing: "0.05em", fontFamily: "Inter, sans-serif", fontWeight: effectiveNav.length === 0 ? 700 : 500, textTransform: "uppercase" as const, color: effectiveNav.length === 0 ? "#fff" : "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>World</button>
+              <button onClick={() => handleGeoNavigateTo(0)} className="header-btn geo-header__jump" style={{ fontSize: "11px", fontWeight: effectiveNav.length === 0 ? 700 : 500, textTransform: "uppercase" as const, color: effectiveNav.length === 0 ? "#fff" : "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>World</button>
               {effectiveNav.map((entry, i) => (
                 <span key={i} className="flex items-center gap-1.5">
                   <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.15)" }}>/</span>
-                  <button onClick={() => handleGeoNavigateTo(i + 1)} className="header-btn whitespace-nowrap" style={{ fontSize: "11px", letterSpacing: "0.05em", fontFamily: "Inter, sans-serif", fontWeight: i === effectiveNav.length - 1 ? 700 : 500, textTransform: "uppercase" as const, color: i === effectiveNav.length - 1 ? "#fff" : "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>{entry.value}</button>
+                  <button onClick={() => handleGeoNavigateTo(i + 1)} className="header-btn geo-header__jump whitespace-nowrap" style={{ fontSize: "11px", fontWeight: i === effectiveNav.length - 1 ? 700 : 500, textTransform: "uppercase" as const, color: i === effectiveNav.length - 1 ? "#fff" : "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>{entry.value}</button>
                 </span>
               ))}
             </nav>
 
             {/* Cities — center */}
-            {geoItems.length > 0 && (
+            {activeGeoSummary ? (
+              <div className="absolute left-1/2 -translate-x-1/2 geo-header__summary">
+                <div className="geo-header__summary-label">{activeGeoSummary.label}</div>
+                <div className="geo-header__summary-count">
+                  {activeGeoSummary.count.toLocaleString()} {activeGeoSummary.count === 1 ? "store" : "stores"}
+                </div>
+              </div>
+            ) : geoItems.length > 0 && (
               <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-4 overflow-x-auto scrollbar-hide" style={{ lineHeight: 1 }}>
                 {geoItems.slice(0, 8).map(item => (
-                  <button key={item.name} onClick={() => { handleGeoSelect(currentGeoLevel === "stores" ? "city" : currentGeoLevel, item.name); closeAll(); }} className="header-btn shrink-0 whitespace-nowrap" style={{ fontSize: "11px", fontWeight: 500, letterSpacing: "0.05em", fontFamily: "Inter, sans-serif", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.4)", border: "none", cursor: "pointer", background: "none", padding: 0 }}>{item.name}</button>
+                  <button key={item.name} onClick={() => { handleGeoSelect(currentGeoLevel === "stores" ? "city" : currentGeoLevel, item.name); closeAll(); }} className="header-btn geo-header__jump shrink-0 whitespace-nowrap" style={{ fontSize: "11px", fontWeight: 500, textTransform: "uppercase" as const, color: "rgba(255,255,255,0.4)", border: "none", cursor: "pointer", background: "none", padding: 0 }}>{item.name}</button>
                 ))}
               </div>
             )}
@@ -609,7 +629,16 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
                 )}
               </div>
             </div>
-            {geoItems.length > 0 && (
+            {activeGeoSummary ? (
+              <div className="px-4 pb-3 text-center" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div className="geo-header__summary-label" style={{ fontSize: "16px", marginTop: "10px" }}>
+                  {activeGeoSummary.label}
+                </div>
+                <div className="geo-header__summary-count" style={{ marginTop: "4px" }}>
+                  {activeGeoSummary.count.toLocaleString()} {activeGeoSummary.count === 1 ? "store" : "stores"}
+                </div>
+              </div>
+            ) : geoItems.length > 0 && (
               <GeoPills
                 items={geoItems}
                 onSelect={(name) => { handleGeoSelect(currentGeoLevel === "stores" ? "city" : currentGeoLevel, name); closeAll(); }}

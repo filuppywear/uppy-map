@@ -40,8 +40,9 @@
   --sai-bottom: env(safe-area-inset-bottom, 0px);
   --overlay-light: rgba(18, 12, 12, 0.5);
   --overlay-dark: rgba(36, 27, 25, 0.58);
-  --tracking-label: 0.12em;
-  --tracking-button: 0.16em;
+  --tracking-ui: 0.05em;
+  --tracking-label: 0.05em;
+  --tracking-button: 0.05em;
   --surface: #302020;
   --surface-deep: #2D2323;
   --surface-lift: #3a2c2c;
@@ -72,7 +73,7 @@ html {
 }
 
 body {
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-ui);
 }
 
 @keyframes slide-in-right {
@@ -100,7 +101,7 @@ a {
 }
 
 .header-btn {
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, opacity 0.15s ease;
 }
 
 @media (hover: none) {
@@ -123,7 +124,38 @@ a {
 }
 
 .header-btn:hover {
+  transform: none;
   font-weight: 700 !important;
+}
+
+.geo-header__jump:hover {
+  color: #fff !important;
+}
+
+.geo-header__summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.geo-header__summary-label {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.geo-header__summary-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.42);
+  text-transform: uppercase;
+  line-height: 1;
 }
 
 .action-icon {
@@ -142,7 +174,7 @@ html {
 body {
   margin: 0;
   color: var(--ink);
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   background:
     radial-gradient(circle at top left, rgba(201, 152, 115, 0.14), transparent 28rem),
     radial-gradient(circle at top right, rgba(36, 27, 25, 0.05), transparent 24rem),
@@ -161,6 +193,17 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+body :is(div, h1, h2, h3, h4, h5, h6, p, span, a, button, input, textarea, select, label, small, strong, li) {
+  font-family: var(--font-display) !important;
+  letter-spacing: var(--tracking-ui) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-ui);
 }
 
 button {
@@ -183,7 +226,7 @@ h4 {
   margin: 0;
   font-family: var(--font-display);
   line-height: 0.98;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--tracking-ui);
 }
 
 p {
