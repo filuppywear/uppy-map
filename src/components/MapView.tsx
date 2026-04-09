@@ -453,6 +453,7 @@ function MapView({
           };
 
           map.on("click", "clusters-hit-area", handleClusterClick);
+          map.on("click", "clusters", handleClusterClick);
 
           const handlePinClick = (event: MapLayerMouseEvent) => {
             const feature = event.features?.[0];
@@ -471,11 +472,19 @@ function MapView({
           };
 
           map.on("click", "stores-hit-area", handlePinClick);
+          map.on("click", "stores-pins", handlePinClick);
 
-          map.on("mouseenter", "stores-hit-area", () => { map.getCanvas().style.cursor = "pointer"; });
-          map.on("mouseleave", "stores-hit-area", () => { map.getCanvas().style.cursor = ""; });
-          map.on("mouseenter", "clusters-hit-area", () => { map.getCanvas().style.cursor = "pointer"; });
-          map.on("mouseleave", "clusters-hit-area", () => { map.getCanvas().style.cursor = ""; });
+          const setPointerCursor = () => { map.getCanvas().style.cursor = "pointer"; };
+          const clearPointerCursor = () => { map.getCanvas().style.cursor = ""; };
+
+          map.on("mouseenter", "stores-hit-area", setPointerCursor);
+          map.on("mouseleave", "stores-hit-area", clearPointerCursor);
+          map.on("mouseenter", "stores-pins", setPointerCursor);
+          map.on("mouseleave", "stores-pins", clearPointerCursor);
+          map.on("mouseenter", "clusters-hit-area", setPointerCursor);
+          map.on("mouseleave", "clusters-hit-area", clearPointerCursor);
+          map.on("mouseenter", "clusters", setPointerCursor);
+          map.on("mouseleave", "clusters", clearPointerCursor);
         };
 
         map.on("load", async () => {
