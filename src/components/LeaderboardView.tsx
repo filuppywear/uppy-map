@@ -34,22 +34,14 @@ export default function LeaderboardView() {
 
         {/* ── POWER-UPS ── */}
         <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 mb-6">
-          <div className="arcade-plate px-4 sm:px-5 py-2.5 flex items-center gap-2">
-            <span style={{ fontSize: "14px" }}>🏪</span>
+          <div className="arcade-plate px-4 sm:px-5 py-2.5">
             <span className="arcade-font" style={{ fontSize: "clamp(6px, 1.5vw, 9px)", color: "#ffd866" }}>
-              NEW STORE
-            </span>
-            <span className="arcade-font" style={{ fontSize: "clamp(6px, 1.5vw, 9px)", color: "#EBE9D9" }}>
-              500
+              + NEW STORE = 500
             </span>
           </div>
-          <div className="arcade-plate px-4 sm:px-5 py-2.5 flex items-center gap-2">
-            <span style={{ fontSize: "14px" }}>✏️</span>
+          <div className="arcade-plate px-4 sm:px-5 py-2.5">
             <span className="arcade-font" style={{ fontSize: "clamp(6px, 1.5vw, 9px)", color: "#c8d4ff" }}>
-              EDIT
-            </span>
-            <span className="arcade-font" style={{ fontSize: "clamp(6px, 1.5vw, 9px)", color: "#EBE9D9" }}>
-              300
+              + EDIT = 300
             </span>
           </div>
         </div>
