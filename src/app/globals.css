@@ -1203,6 +1203,9 @@ p {
 
 .mapboxgl-popup .mapboxgl-popup-tip {
   border-top-color: #302020 !important;
+  border-bottom-color: #302020 !important;
+  border-left-color: #302020 !important;
+  border-right-color: #302020 !important;
 }
 
 .mini-popup {

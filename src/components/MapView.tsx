@@ -468,7 +468,7 @@ function MapView({
             id: "stores-pins-hover",
             type: "symbol",
             source: "stores",
-            filter: ["==", ["get", "id"], ""],
+            filter: ["==", ["get", "id"], -1],
             layout: {
               "icon-image": [
                 "match",
@@ -494,21 +494,30 @@ function MapView({
             const storeId = String(properties.id ?? "");
             const store = storesRef.current.find((entry) => String(entry.id) === storeId);
 
+            // Clear hover before opening popup
+            map.setFilter("stores-pins-hover", ["==", ["get", "id"], -1]);
+
+            // Save current view so we can cancel any auto-pan the popup triggers
+            const savedCenter = map.getCenter();
+            const savedZoom = map.getZoom();
+
             const popup = new mapboxgl.Popup({
               className: "sw-popup",
-              offset: [0, -8],
+              offset: [0, -38],
               closeButton: true,
               closeOnClick: true,
               closeOnMove: false,
               focusAfterOpen: false,
               maxWidth: "280px",
+              anchor: "bottom",
             })
               .setLngLat(coords)
               .setHTML(buildPopupHTML(properties))
               .addTo(map);
 
-            // Prevent Mapbox from panning/animating to fit the popup in view
+            // Immediately snap back — cancels any auto-pan without visible movement
             map.stop();
+            map.jumpTo({ center: savedCenter, zoom: savedZoom });
 
             popupRef.current = popup;
 
@@ -564,19 +573,20 @@ function MapView({
 
           map.on("click", "stores-hit-area", handlePinClick);
           map.on("click", "stores-pins", handlePinClick);
+          map.on("click", "stores-pins-hover", handlePinClick);
 
           // --- Hover: pins (much bigger) ---
           const handlePinEnter = (e: MapLayerMouseEvent) => {
             map.getCanvas().style.cursor = "pointer";
             const feature = e.features?.[0];
-            if (!feature) return;
-            const id = String(feature.properties?.id ?? "");
-            if (!id) return;
+            if (!feature || popupRef.current) return;
+            const id = Number(feature.properties?.id);
+            if (!Number.isFinite(id)) return;
             map.setFilter("stores-pins-hover", ["==", ["get", "id"], id]);
           };
           const handlePinLeave = () => {
             map.getCanvas().style.cursor = "";
-            map.setFilter("stores-pins-hover", ["==", ["get", "id"], ""]);
+            map.setFilter("stores-pins-hover", ["==", ["get", "id"], -1]);
           };
           map.on("mouseenter", "stores-hit-area", handlePinEnter);
           map.on("mouseleave", "stores-hit-area", handlePinLeave);
