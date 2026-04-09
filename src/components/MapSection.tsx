@@ -140,7 +140,7 @@ export function MiniFooter() {
    MAIN
    ═══════════════════════════════════════════════════ */
 export default function MapSection({ initialStats = DEFAULT_STATS }: { initialStats?: DatasetStats }) {
-  const { isLoggedIn } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -211,13 +211,13 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
     setPhase("app");
   }, [dataReady, loadingComplete, phase]);
 
-  // Show onboarding wall ONCE on first app load
+  // Show onboarding wall ONCE on first app load — skip if already logged in
   useEffect(() => {
-    if (phase !== "app" || onboardingChecked.current) return;
+    if (phase !== "app" || onboardingChecked.current || isLoggedIn) return;
     onboardingChecked.current = true;
     if (localStorage.getItem("uppy_map_onboarding_complete") || hasWaitlistAccess()) return;
     setShowOnboarding(true);
-  }, [phase]);
+  }, [phase, isLoggedIn]);
 
   // Check if logged-in user needs profile setup (no full_name)
   useEffect(() => {
@@ -755,10 +755,13 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
       )}
 
       {showProfileSetup && !showOnboarding && (
-        <ProfileSetup onComplete={() => {
-          localStorage.setItem("uppy_map_profile_setup_done", "true");
-          setShowProfileSetup(false);
-        }} />
+        <ProfileSetup
+          defaultName={user?.user_metadata?.full_name || user?.user_metadata?.name || ""}
+          onComplete={() => {
+            localStorage.setItem("uppy_map_profile_setup_done", "true");
+            setShowProfileSetup(false);
+          }}
+        />
       )}
 
       <MobileBottomBar
