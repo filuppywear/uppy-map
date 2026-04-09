@@ -28,7 +28,7 @@ export async function submitStore(data: StoreSubmission) {
 
   const { error } = await supabase.from("submissions").insert({
     user_id: user.id,
-    store_id: data.store_id ?? null,
+    original_store_id: data.store_id ?? null,
     name: data.name,
     description: data.description ?? null,
     category: data.category ?? null,
@@ -39,7 +39,7 @@ export async function submitStore(data: StoreSubmission) {
     instagram: data.instagram ?? null,
     lat: data.lat ?? null,
     lng: data.lng ?? null,
-    images: data.images ?? [],
+    image_url: data.images?.[0] ?? null,
     status: "pending",
   });
 
