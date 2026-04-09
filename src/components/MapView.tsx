@@ -403,6 +403,8 @@ function MapView({
 
           const openStorePopup = (coords: [number, number], properties: Record<string, unknown>) => {
             popupRef.current?.remove();
+            const storeId = String(properties.id ?? "");
+            const store = storesRef.current.find((entry) => String(entry.id) === storeId);
 
             const popup = new mapboxgl.Popup({
               className: "sw-popup",
@@ -420,20 +422,22 @@ function MapView({
             popupRef.current = popup;
 
             requestAnimationFrame(() => {
-              const button = popup.getElement()?.querySelector<HTMLButtonElement>(".mini-popup__btn");
-              button?.addEventListener(
-                "click",
-                (popupEvent) => {
-                  popupEvent.preventDefault();
-                  const storeId = button.dataset.storeId;
-                  const store = storesRef.current.find((entry) => String(entry.id) === storeId);
-                  if (store && onStoreSelectRef.current) {
-                    onStoreSelectRef.current(store);
-                    popup.remove();
-                  }
-                },
-                { once: true }
-              );
+              const popupElement = popup.getElement();
+              if (!popupElement || !store) return;
+
+              const handlePopupClick = (popupEvent: MouseEvent) => {
+                const target = popupEvent.target as HTMLElement | null;
+                if (!target?.closest(".mini-popup__btn")) return;
+                popupEvent.preventDefault();
+                popupEvent.stopPropagation();
+                if (onStoreSelectRef.current) {
+                  onStoreSelectRef.current(store);
+                  popup.remove();
+                }
+                popupElement.removeEventListener("click", handlePopupClick);
+              };
+
+              popupElement.addEventListener("click", handlePopupClick);
             });
           };
 
@@ -444,8 +448,8 @@ function MapView({
             const coords = (feature.geometry as Point).coordinates as [number, number];
             const level = getZoomLevel(map.getZoom());
             popupRef.current?.remove();
-            const targetZoom = level === 0 ? 5.5 : Math.min(map.getZoom() + 2.2, 13.8);
-            map.easeTo({ center: coords, zoom: targetZoom, duration: 850, essential: true });
+            const targetZoom = level === 0 ? ZOOM_THRESHOLDS[0] + 1.5 : 14;
+            map.flyTo({ center: coords, zoom: targetZoom, speed: 1.4, essential: true });
           };
 
           map.on("click", "clusters-hit-area", handleClusterClick);
