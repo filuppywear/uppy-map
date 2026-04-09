@@ -20,13 +20,15 @@ export async function toggleStoreFavorite(storeId: number) {
     .maybeSingle();
 
   if (existing) {
-    await supabase.from("store_favorites").delete().eq("id", existing.id);
+    const { error } = await supabase.from("store_favorites").delete().eq("id", existing.id);
+    if (error) return { error: error.message };
     return { favorited: false };
   }
 
-  await supabase
+  const { error } = await supabase
     .from("store_favorites")
     .insert({ user_id: user.id, store_id: storeId });
+  if (error) return { error: error.message };
   return { favorited: true };
 }
 

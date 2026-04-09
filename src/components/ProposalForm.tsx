@@ -35,7 +35,13 @@ export default function ProposalForm({ mode, store, onClose, onSuccess }: Props)
       if (!reason.trim()) { setError("Please provide a reason"); setSubmitting(false); return; }
       result = await submitRemovalProposal(store!.id, reason);
     } else if (mode === "edit") {
-      result = await submitEditProposal(store!.id, { name, description, category, city, country, address, website, instagram });
+      const fields = { name, description, category, city, country, address, website, instagram };
+      const hasChange = Object.entries(fields).some(([k, v]) => {
+        const orig = (store as unknown as Record<string, unknown>)?.[k] ?? "";
+        return String(v).trim() !== String(orig).trim();
+      });
+      if (!hasChange) { setError("Change at least one field"); setSubmitting(false); return; }
+      result = await submitEditProposal(store!.id, fields);
     } else {
       if (!name.trim()) { setError("Store name is required"); setSubmitting(false); return; }
       result = await submitNewStoreProposal({ name, description, category, city, country, address, website, instagram });
