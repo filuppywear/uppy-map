@@ -143,7 +143,7 @@ export default function StoreDetailModal({ store, onClose, isSaved = false, onTo
     }
   };
 
-  const handleBackdropMouseDown = (event: MouseEvent<HTMLDivElement>) => {
+  const handleBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget) return;
     event.preventDefault();
     event.stopPropagation();
@@ -160,12 +160,11 @@ export default function StoreDetailModal({ store, onClose, isSaved = false, onTo
     <div
       className="fixed inset-0 z-[60] flex items-end lg:items-center justify-center p-0 lg:p-6"
       style={{ background: "var(--overlay-dark)", backdropFilter: "blur(10px)" }}
-      onMouseDown={handleBackdropMouseDown}
+      onClick={handleBackdropClick}
     >
       <div
         className="relative w-full lg:max-w-2xl max-h-[calc(100dvh-var(--sai-top))] lg:max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
         style={{ background: "#302020", boxShadow: "0 28px 80px rgba(36,27,25,0.24)", overscrollBehavior: "contain" }}
       >
         {/* Top actions — heart + close */}

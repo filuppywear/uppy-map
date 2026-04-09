@@ -431,6 +431,7 @@ function MapView({
                 popupEvent.preventDefault();
                 popupEvent.stopPropagation();
                 if (onStoreSelectRef.current) {
+                  map.stop();
                   onStoreSelectRef.current(store);
                   popup.remove();
                 }
