@@ -433,9 +433,8 @@ function MapView({
             source: "stores",
             filter: ["!", ["has", "point_count"]],
             paint: {
-              "circle-radius": 30,
+              "circle-radius": 18,
               "circle-opacity": 0,
-              "circle-translate": [0, -16],
             },
           });
 
@@ -480,7 +479,7 @@ function MapView({
                 3, "pin-3",
                 "pin-0",
               ],
-              "icon-size": 1.8,
+              "icon-size": 1.5,
               "icon-anchor": "bottom",
               "icon-allow-overlap": true,
               "icon-ignore-placement": true,
@@ -498,9 +497,9 @@ function MapView({
             // Clear hover before opening popup
             map.setFilter("stores-pins-hover", ["==", ["get", "id"], -1]);
 
-            // Save current view so we can cancel any auto-pan the popup triggers
-            const savedCenter = map.getCenter();
-            const savedZoom = map.getZoom();
+            // Smoothly center on the pin, then open popup
+            map.stop();
+            map.easeTo({ center: coords, duration: 300 });
 
             const popup = new mapboxgl.Popup({
               className: "sw-popup",
@@ -515,10 +514,6 @@ function MapView({
               .setLngLat(coords)
               .setHTML(buildPopupHTML(properties))
               .addTo(map);
-
-            // Immediately snap back — cancels any auto-pan without visible movement
-            map.stop();
-            map.jumpTo({ center: savedCenter, zoom: savedZoom });
 
             popupRef.current = popup;
 
@@ -577,7 +572,7 @@ function MapView({
           map.on("click", "stores-pins-hover", handlePinClick);
 
           // --- Hover effects (desktop only — no hover on touch devices) ---
-          const hasHover = window.matchMedia("(hover: hover)").matches;
+          const hasHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
           if (hasHover) {
             const handlePinEnter = (e: MapLayerMouseEvent) => {
               map.getCanvas().style.cursor = "pointer";
