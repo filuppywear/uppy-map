@@ -48,7 +48,7 @@ interface LeadPayload {
 }
 
 const OAUTH_UNAVAILABLE_MESSAGE =
-  "Google and Apple sign-in will work as soon as auth keys are connected. Email unlock is ready right now.";
+  "Google sign-in will work as soon as auth keys are connected. Email unlock is ready right now.";
 
 function WaitlistFrame({ children, onClose }: WaitlistFrameProps) {
   return (
@@ -105,7 +105,7 @@ function roleToApiRole(role: WaitlistRole | null) {
 
 function getProviderFromUser(user: User): WaitlistProvider | undefined {
   const provider = user.app_metadata?.provider;
-  return provider === "google" || provider === "apple" ? provider : undefined;
+  return provider === "google" ? provider : undefined;
 }
 
 function getFullName(user: User) {
@@ -213,6 +213,7 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
     getPendingOnboardingRole()
   );
   const [email, setEmail] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
   const [error, setError] = useState("");
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<SocialProvider | null>(null);
@@ -374,6 +375,7 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
     userTypeRef.current = role;
     rememberPendingOnboardingRole(role);
     setError("");
+    setEmailSent(false);
     setStep("auth");
     track("gate_type_selected", { userType: role });
   }, []);
@@ -433,13 +435,44 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
       setEmailSubmitting(true);
       track("gate_email_submitted", { userType: role });
 
+      if (authConfigured) {
+        try {
+          const supabase = createSupabaseBrowserClient();
+          const { error: otpError } = await supabase.auth.signInWithOtp({
+            email: normalized,
+            options: {
+              emailRedirectTo: window.location.href,
+            },
+          });
+
+          if (otpError) {
+            setEmailSubmitting(false);
+            setError(otpError.message || "Could not send the magic link.");
+            return;
+          }
+
+          setEmailSubmitting(false);
+          setEmailSent(true);
+          track("gate_magic_link_sent", { userType: role });
+          return;
+        } catch (authError) {
+          setEmailSubmitting(false);
+          setError(
+            authError instanceof Error
+              ? authError.message
+              : "Could not send the magic link."
+          );
+          return;
+        }
+      }
+
       await completeAccess({
         email: normalized,
         provider: "email",
         source: "email_gate",
       });
     },
-    [completeAccess, email]
+    [authConfigured, completeAccess, email]
   );
 
   if (step === "role") {
@@ -500,92 +533,131 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
   if (step === "auth") {
     return (
       <WaitlistFrame onClose={onClose}>
-        <div className="text-[10px] font-bold uppercase tracking-[0.16em] mb-3" style={{ color: "#A58277" }}>
-          {roleCopy.eyebrow}
-        </div>
-        <h2
-          className="text-xl font-bold uppercase tracking-tight mb-2 leading-tight"
-          style={{
-            fontFamily: "'Montserrat', var(--font-display)",
-            color: "#FFFFFF",
-          }}
-        >
-          {roleCopy.title}
-        </h2>
-        <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>
-          {roleCopy.body}
-        </p>
+        {emailSent ? (
+          <div className="text-center">
+            <div
+              className="mx-auto mb-5 flex items-center justify-center"
+              style={{ width: 48, height: 48, border: "2px solid rgba(255,255,255,0.25)" }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+            </div>
+            <h2
+              className="text-xl font-bold uppercase tracking-tight mb-2"
+              style={{
+                fontFamily: "'Montserrat', var(--font-display)",
+                color: "#FFFFFF",
+              }}
+            >
+              Check your inbox
+            </h2>
+            <p className="text-sm mb-2" style={{ color: "rgba(255,255,255,0.55)" }}>
+              We sent a magic link to
+            </p>
+            <p className="text-sm font-bold mb-6" style={{ color: "#FFFFFF" }}>
+              {email}
+            </p>
+            <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
+              Click the link in the email to log in and unlock the map on this device.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setEmailSent(false);
+                setError("");
+              }}
+              className="mt-6 text-xs font-bold uppercase tracking-[0.12em]"
+              style={{ color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer" }}
+            >
+              Use a different email
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="text-[10px] font-bold uppercase tracking-[0.16em] mb-3" style={{ color: "#A58277" }}>
+              {roleCopy.eyebrow}
+            </div>
+            <h2
+              className="text-xl font-bold uppercase tracking-tight mb-2 leading-tight"
+              style={{
+                fontFamily: "'Montserrat', var(--font-display)",
+                color: "#FFFFFF",
+              }}
+            >
+              {roleCopy.title}
+            </h2>
+            <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>
+              {roleCopy.body}
+            </p>
 
-        <div className="space-y-3">
-          <SocialButton
-            provider="google"
-            busy={oauthLoading === "google"}
-            disabled={oauthLoading !== null || emailSubmitting}
-            onClick={() => void handleOAuth("google")}
-          />
-          <SocialButton
-            provider="apple"
-            busy={oauthLoading === "apple"}
-            disabled={oauthLoading !== null || emailSubmitting}
-            onClick={() => void handleOAuth("apple")}
-          />
-        </div>
+            <div className="space-y-3">
+              <SocialButton
+                provider="google"
+                busy={oauthLoading === "google"}
+                disabled={oauthLoading !== null || emailSubmitting}
+                onClick={() => void handleOAuth("google")}
+              />
+            </div>
 
-        {!authConfigured && (
-          <p className="mt-3 text-xs" style={{ color: "rgba(255,255,255,0.42)" }}>
-            {OAUTH_UNAVAILABLE_MESSAGE}
-          </p>
+            {!authConfigured && (
+              <p className="mt-3 text-xs" style={{ color: "rgba(255,255,255,0.42)" }}>
+                {OAUTH_UNAVAILABLE_MESSAGE}
+              </p>
+            )}
+
+            <div className="flex items-center gap-3 my-5" style={{ color: "rgba(255,255,255,0.28)" }}>
+              <span className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.12)" }} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em]">or</span>
+              <span className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.12)" }} />
+            </div>
+
+            <form onSubmit={handleEmailSubmit} className="space-y-3">
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="your@email.com"
+                required
+                autoFocus
+                className="w-full h-11 px-4 outline-none"
+                style={{
+                  background: "transparent",
+                  border: "2px solid rgba(255,255,255,0.35)",
+                  color: "#FFFFFF",
+                  fontSize: "16px",
+                }}
+              />
+              <button
+                type="submit"
+                disabled={emailSubmitting || oauthLoading !== null}
+                className="w-full h-11 text-sm font-bold uppercase tracking-[0.16em]"
+                style={{
+                  background: "#FFFFFF",
+                  color: "#302020",
+                  border: "none",
+                  cursor: emailSubmitting ? "default" : "pointer",
+                  opacity: emailSubmitting ? 0.6 : 1,
+                }}
+              >
+                {emailSubmitting ? "Sending..." : roleCopy.cta}
+              </button>
+            </form>
+
+            {error && (
+              <p className="mt-3 text-xs" style={{ color: "#E4A08A" }}>
+                {error}
+              </p>
+            )}
+
+            <div className="flex flex-col gap-1.5 mt-5" style={{ color: "rgba(255,255,255,0.4)" }}>
+              <span className="text-[11px]">&#10003; Open the map right away</span>
+              <span className="text-[11px]">&#10003; Save your future favorites and routes</span>
+              <span className="text-[11px]">&#10003; Stay first in line for Uppy Market</span>
+            </div>
+          </>
         )}
-
-        <div className="flex items-center gap-3 my-5" style={{ color: "rgba(255,255,255,0.28)" }}>
-          <span className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.12)" }} />
-          <span className="text-[10px] font-bold uppercase tracking-[0.12em]">or</span>
-          <span className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.12)" }} />
-        </div>
-
-        <form onSubmit={handleEmailSubmit} className="space-y-3">
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="your@email.com"
-            required
-            autoFocus
-            className="w-full h-11 px-4 outline-none"
-            style={{
-              background: "transparent",
-              border: "2px solid rgba(255,255,255,0.35)",
-              color: "#FFFFFF",
-              fontSize: "16px",
-            }}
-          />
-          <button
-            type="submit"
-            disabled={emailSubmitting || oauthLoading !== null}
-            className="w-full h-11 text-sm font-bold uppercase tracking-[0.16em]"
-            style={{
-              background: "#FFFFFF",
-              color: "#302020",
-              border: "none",
-              cursor: emailSubmitting ? "default" : "pointer",
-              opacity: emailSubmitting ? 0.6 : 1,
-            }}
-          >
-            {emailSubmitting ? "Opening..." : roleCopy.cta}
-          </button>
-        </form>
-
-        {error && (
-          <p className="mt-3 text-xs" style={{ color: "#E4A08A" }}>
-            {error}
-          </p>
-        )}
-
-        <div className="flex flex-col gap-1.5 mt-5" style={{ color: "rgba(255,255,255,0.4)" }}>
-          <span className="text-[11px]">&#10003; Open the map right away</span>
-          <span className="text-[11px]">&#10003; Save your future favorites and routes</span>
-          <span className="text-[11px]">&#10003; Stay first in line for Uppy Market</span>
-        </div>
       </WaitlistFrame>
     );
   }

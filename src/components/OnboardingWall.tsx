@@ -13,7 +13,7 @@ interface Props {
   stats?: DatasetStats;
 }
 type Step = 1 | 2 | 3;
-type SocialProvider = "google" | "apple";
+type SocialProvider = "google";
 
 function StepDots({ current, total }: { current: number; total: number }) {
   return (
@@ -283,7 +283,6 @@ export default function OnboardingWall({ onComplete, stats = DEFAULT_STATS }: Pr
 
               <div className="space-y-3 w-full">
                 <SocialButton provider="google" busy={oauthLoading === "google"} disabled={oauthLoading !== null || emailSubmitting} onClick={() => void handleOAuth("google")} />
-                <SocialButton provider="apple" busy={oauthLoading === "apple"} disabled={oauthLoading !== null || emailSubmitting} onClick={() => void handleOAuth("apple")} />
               </div>
 
               <div className="flex items-center gap-3 my-5 w-full" style={{ color: "rgba(255,255,255,0.28)" }}>
