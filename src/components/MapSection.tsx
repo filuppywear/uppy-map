@@ -390,6 +390,8 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
       zoom = 14,
     } = options ?? {};
 
+    storeIntentAppliedRef.current = store.id;
+
     if (syncLocation && (store.continent || store.country || store.city)) {
       viewportLockUntil.current = Date.now() + 5000;
       setMapLocation({
@@ -486,7 +488,9 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
   useEffect(() => {
     if (phase !== "app" || !dataReady) return;
     if (!storeQuery) {
-      storeIntentAppliedRef.current = null;
+      if (!selectedStore) {
+        storeIntentAppliedRef.current = null;
+      }
       return;
     }
 
@@ -499,7 +503,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
 
     storeIntentAppliedRef.current = storeId;
     openStoreDetail(store, { switchView: "map" });
-  }, [allStores, dataReady, openStoreDetail, phase, selectedStore?.id, storeQuery]);
+  }, [allStores, dataReady, openStoreDetail, phase, selectedStore, selectedStore?.id, storeQuery]);
 
   useEffect(() => {
     if (phase !== "app") return;
