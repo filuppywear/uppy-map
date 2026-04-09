@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { getLeaderboard, type LeaderboardEntry } from "@/actions/proposals";
 
-const RANK_COLORS = ["#EBE9D9", "rgba(255,255,255,0.6)", "#A58277"];
+const RANK_COLORS = ["#ffd866", "#c8d4ff", "#dda882"];
 const RANK_CLASSES = ["arcade-row-gold", "arcade-row-silver", "arcade-row-bronze"];
+const RANK_CSS = ["arcade-rank-1", "arcade-rank-2", "arcade-rank-3"];
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 
@@ -24,49 +25,57 @@ export default function LeaderboardView() {
       <div className="max-w-2xl mx-auto px-3 sm:px-6 md:px-8 py-8 pb-28 lg:pb-8">
 
         {/* ── CABINET TOP PLATE ── */}
-        <div className="arcade-plate px-6 py-4 mb-6 text-center">
-          <h1 className="arcade-font" style={{ fontSize: "clamp(12px, 3vw, 20px)", color: "#EBE9D9", letterSpacing: "0.06em", lineHeight: 1.8 }}>
+        <div className="arcade-plate px-6 py-5 mb-6 text-center">
+          <h1 className="arcade-font" style={{ fontSize: "clamp(16px, 4vw, 26px)", color: "#ffd866", letterSpacing: "0.08em", lineHeight: 1.6, textShadow: "0 0 20px rgba(255,216,102,0.3), 0 2px 0 #1a0e0e" }}>
             HIGH SCORES
           </h1>
-          <div className="arcade-grille h-2 mt-2 mx-auto" style={{ maxWidth: "120px" }} />
+          <div className="arcade-grille h-2 mt-3 mx-auto" style={{ maxWidth: "140px" }} />
         </div>
 
-        {/* ── POWER-UP PLATES ── */}
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mb-5">
-          <div className="arcade-plate px-3 sm:px-4 py-2">
-            <span className="arcade-font" style={{ fontSize: "clamp(5px, 1.3vw, 7px)", color: "#EBE9D9", letterSpacing: "0.04em" }}>
-              ★ NEW STORE 500 PTS
+        {/* ── POWER-UPS ── */}
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 mb-6">
+          <div className="arcade-plate px-4 sm:px-5 py-2.5 flex items-center gap-2">
+            <span style={{ fontSize: "14px" }}>🏪</span>
+            <span className="arcade-font" style={{ fontSize: "clamp(6px, 1.5vw, 9px)", color: "#ffd866" }}>
+              NEW STORE
+            </span>
+            <span className="arcade-font" style={{ fontSize: "clamp(6px, 1.5vw, 9px)", color: "#EBE9D9" }}>
+              500
             </span>
           </div>
-          <div className="arcade-plate px-3 sm:px-4 py-2">
-            <span className="arcade-font" style={{ fontSize: "clamp(5px, 1.3vw, 7px)", color: "#EBE9D9", letterSpacing: "0.04em" }}>
-              ✎ EDIT 300 PTS
+          <div className="arcade-plate px-4 sm:px-5 py-2.5 flex items-center gap-2">
+            <span style={{ fontSize: "14px" }}>✏️</span>
+            <span className="arcade-font" style={{ fontSize: "clamp(6px, 1.5vw, 9px)", color: "#c8d4ff" }}>
+              EDIT
+            </span>
+            <span className="arcade-font" style={{ fontSize: "clamp(6px, 1.5vw, 9px)", color: "#EBE9D9" }}>
+              300
             </span>
           </div>
         </div>
 
         {/* ── CRT SCREEN ── */}
-        <div className="arcade-screen px-3 sm:px-5 md:px-6 py-6 sm:py-8">
+        <div className="arcade-screen px-3 sm:px-5 md:px-7 py-6 sm:py-8">
 
-          {/* Screen title */}
-          <div className="relative z-[3] text-center mb-6">
-            <p className="arcade-font arcade-pulse" style={{ fontSize: "clamp(5px, 1.2vw, 7px)", color: "rgba(235,233,217,0.3)", letterSpacing: "0.12em" }}>
-              THE WORLD&apos;S THRIFT MAP
+          {/* Screen subtitle */}
+          <div className="relative z-[3] text-center mb-6 sm:mb-8">
+            <p className="arcade-font arcade-pulse" style={{ fontSize: "clamp(5px, 1.3vw, 8px)", color: "rgba(255,216,102,0.25)", letterSpacing: "0.15em" }}>
+              — THE WORLD&apos;S THRIFT MAP —
             </p>
           </div>
 
           {/* Header row */}
-          <div className="relative z-[3] hidden md:flex items-center px-3 pb-3 mb-2" style={{ borderBottom: "1px solid rgba(235,233,217,0.08)" }}>
-            <span className="arcade-font w-14" style={{ fontSize: "6px", color: "rgba(235,233,217,0.2)" }}>RANK</span>
-            <span className="arcade-font flex-1" style={{ fontSize: "6px", color: "rgba(235,233,217,0.2)" }}>PLAYER</span>
-            <span className="arcade-font w-24 text-right" style={{ fontSize: "6px", color: "rgba(235,233,217,0.2)" }}>SCORE</span>
-            <span className="arcade-font w-16 text-right" style={{ fontSize: "6px", color: "rgba(235,233,217,0.2)" }}>✓</span>
+          <div className="relative z-[3] hidden md:flex items-center px-3 pb-3 mb-3" style={{ borderBottom: "1px solid rgba(255,216,102,0.08)" }}>
+            <span className="arcade-font w-14" style={{ fontSize: "7px", color: "rgba(255,216,102,0.18)" }}>RANK</span>
+            <span className="arcade-font flex-1" style={{ fontSize: "7px", color: "rgba(255,216,102,0.18)" }}>PLAYER</span>
+            <span className="arcade-font w-24 text-right" style={{ fontSize: "7px", color: "rgba(255,216,102,0.18)" }}>SCORE</span>
+            <span className="arcade-font w-16 text-right" style={{ fontSize: "7px", color: "rgba(255,216,102,0.18)" }}>LVL</span>
           </div>
 
           {/* Loading */}
           {loading && (
-            <div className="relative z-[3] py-16 text-center">
-              <span className="arcade-font arcade-blink" style={{ fontSize: "clamp(6px, 1.5vw, 8px)", color: "rgba(235,233,217,0.35)" }}>
+            <div className="relative z-[3] py-20 text-center">
+              <span className="arcade-font arcade-blink" style={{ fontSize: "clamp(7px, 1.8vw, 10px)", color: "#ffd866" }}>
                 LOADING . . .
               </span>
             </div>
@@ -74,12 +83,12 @@ export default function LeaderboardView() {
 
           {/* Empty */}
           {!loading && entries.length === 0 && (
-            <div className="relative z-[3] py-16 text-center">
-              <span className="arcade-font" style={{ fontSize: "clamp(6px, 1.5vw, 8px)", color: "rgba(235,233,217,0.25)" }}>
+            <div className="relative z-[3] py-20 text-center">
+              <p className="arcade-font" style={{ fontSize: "clamp(8px, 2vw, 12px)", color: "#ffd866", lineHeight: 2.2 }}>
                 NO SCORES YET
-              </span>
-              <p className="mt-4" style={{ fontSize: "10px", color: "rgba(235,233,217,0.15)" }}>
-                Be the first — propose a store to earn points
+              </p>
+              <p className="arcade-font mt-4" style={{ fontSize: "clamp(5px, 1.2vw, 7px)", color: "rgba(235,233,217,0.2)", lineHeight: 2 }}>
+                PROPOSE A STORE TO<br />ENTER THE RANKINGS
               </p>
             </div>
           )}
@@ -88,54 +97,68 @@ export default function LeaderboardView() {
           {!loading && entries.map((entry, i) => {
             const color = i < 3 ? RANK_COLORS[i] : "rgba(235,233,217,0.3)";
             const rowClass = i < 3 ? RANK_CLASSES[i] : "";
+            const rankCss = i < 3 ? RANK_CSS[i] : "";
             const pts = entry.points * 100;
 
             return (
               <div
                 key={entry.user_id}
-                className={`arcade-row ${rowClass} relative z-[3] flex items-center px-2 sm:px-3 py-2.5 sm:py-3`}
-                style={{ borderBottom: "1px solid rgba(235,233,217,0.03)" }}
+                className={`arcade-row ${rowClass} relative z-[3] flex items-center px-2 sm:px-3 py-3 sm:py-3.5`}
+                style={{ borderBottom: "1px solid rgba(235,233,217,0.04)" }}
               >
-                <span className="arcade-font w-8 sm:w-10 md:w-14 shrink-0" style={{ fontSize: "clamp(8px, 1.8vw, 11px)", color }}>
+                {/* Rank */}
+                <span className={`arcade-font w-9 sm:w-12 md:w-14 shrink-0 ${rankCss}`} style={{ fontSize: "clamp(10px, 2.2vw, 14px)", color: i >= 3 ? "rgba(235,233,217,0.2)" : undefined }}>
                   {pad(i + 1)}
                 </span>
+
+                {/* Dot separator */}
+                <span className="shrink-0 mx-1 sm:mx-2" style={{ color: "rgba(235,233,217,0.1)", fontSize: "10px" }}>.</span>
+
+                {/* Name */}
                 <span
-                  className="flex-1 truncate"
-                  style={{ fontSize: "clamp(10px, 2.2vw, 13px)", fontWeight: i < 3 ? 700 : 400, color, letterSpacing: "0.04em", textTransform: "uppercase" }}
+                  className="arcade-font flex-1 truncate"
+                  style={{ fontSize: "clamp(8px, 1.8vw, 11px)", color, letterSpacing: "0.03em" }}
                 >
-                  {entry.username || "???"}
+                  {(entry.username || "???").toUpperCase()}
                 </span>
-                <span className="arcade-font w-16 sm:w-20 md:w-24 text-right shrink-0" style={{ fontSize: "clamp(8px, 1.8vw, 11px)", color }}>
+
+                {/* Score */}
+                <span className={`arcade-font w-16 sm:w-20 md:w-24 text-right shrink-0 ${rankCss}`} style={{ fontSize: "clamp(10px, 2.2vw, 14px)", color: i >= 3 ? "rgba(235,233,217,0.25)" : undefined }}>
                   {pts.toLocaleString()}
                 </span>
-                <span className="hidden md:block arcade-font w-16 text-right shrink-0" style={{ fontSize: "clamp(7px, 1.5vw, 9px)", color: "rgba(235,233,217,0.15)" }}>
+
+                {/* Approved count */}
+                <span className="hidden md:block arcade-font w-16 text-right shrink-0" style={{ fontSize: "clamp(7px, 1.5vw, 9px)", color: "rgba(235,233,217,0.12)" }}>
                   {entry.approved_count}
                 </span>
               </div>
             );
           })}
 
-          {/* Bottom message */}
-          <div className="relative z-[3] text-center mt-8">
-            <p className="arcade-font arcade-blink" style={{ fontSize: "clamp(5px, 1.2vw, 7px)", color: "rgba(235,233,217,0.2)", letterSpacing: "0.04em" }}>
-              INSERT COIN — PROPOSE STORES TO RANK UP
+          {/* Bottom blink */}
+          <div className="relative z-[3] text-center mt-10">
+            <p className="arcade-font arcade-blink" style={{ fontSize: "clamp(5px, 1.3vw, 8px)", color: "rgba(255,216,102,0.25)", letterSpacing: "0.06em" }}>
+              INSERT COIN
+            </p>
+            <p className="arcade-font mt-2" style={{ fontSize: "clamp(4px, 1vw, 6px)", color: "rgba(235,233,217,0.12)", letterSpacing: "0.04em" }}>
+              PROPOSE STORES TO RANK UP
             </p>
           </div>
         </div>
 
         {/* ── BONUS PLATE ── */}
-        <div className="arcade-plate mt-5 px-5 py-4 text-center">
-          <span className="arcade-font arcade-pulse" style={{ fontSize: "clamp(5px, 1.2vw, 7px)", color: "#A58277", letterSpacing: "0.06em" }}>
-            ★ BONUS ROUND — COMING SOON ★
+        <div className="arcade-plate mt-6 px-5 py-4 text-center">
+          <span className="arcade-font arcade-pulse" style={{ fontSize: "clamp(6px, 1.4vw, 8px)", color: "#dda882", letterSpacing: "0.06em", textShadow: "0 0 12px rgba(221,168,130,0.2)" }}>
+            ★ BONUS ROUND ★
           </span>
-          <p className="mt-2" style={{ fontSize: "9px", color: "rgba(235,233,217,0.25)", lineHeight: 1.7 }}>
-            Vintage prizes, marketplace coupons, exclusive perks
+          <p className="arcade-font mt-3" style={{ fontSize: "clamp(4px, 1vw, 6px)", color: "rgba(235,233,217,0.2)", lineHeight: 2.2 }}>
+            VINTAGE PRIZES &amp; COUPONS<br />COMING SOON
           </p>
         </div>
 
-        {/* ── CABINET FOOTER ── */}
-        <div className="arcade-grille h-3 mt-5 mx-auto" style={{ maxWidth: "200px" }} />
-        <p className="text-center mt-4" style={{ fontSize: "8px", color: "rgba(235,233,217,0.08)", letterSpacing: "0.25em" }}>
+        {/* ── SPEAKER GRILLE ── */}
+        <div className="arcade-grille h-4 mt-6 mx-auto" style={{ maxWidth: "220px" }} />
+        <p className="text-center mt-4 arcade-font" style={{ fontSize: "6px", color: "rgba(235,233,217,0.06)", letterSpacing: "0.3em" }}>
           CREDIT 00
         </p>
       </div>
