@@ -26,7 +26,7 @@ export async function submitStore(data: StoreSubmission) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { error } = await supabase.from("store_submissions").insert({
+  const { error } = await supabase.from("submissions").insert({
     user_id: user.id,
     store_id: data.store_id ?? null,
     name: data.name,
