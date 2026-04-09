@@ -433,8 +433,9 @@ function MapView({
             source: "stores",
             filter: ["!", ["has", "point_count"]],
             paint: {
-              "circle-radius": 18,
+              "circle-radius": 30,
               "circle-opacity": 0,
+              "circle-translate": [0, -16],
             },
           });
 
@@ -575,41 +576,43 @@ function MapView({
           map.on("click", "stores-pins", handlePinClick);
           map.on("click", "stores-pins-hover", handlePinClick);
 
-          // --- Hover: pins (much bigger) ---
-          const handlePinEnter = (e: MapLayerMouseEvent) => {
-            map.getCanvas().style.cursor = "pointer";
-            const feature = e.features?.[0];
-            if (!feature || popupRef.current) return;
-            const id = Number(feature.properties?.id);
-            if (!Number.isFinite(id)) return;
-            map.setFilter("stores-pins-hover", ["==", ["get", "id"], id]);
-          };
-          const handlePinLeave = () => {
-            map.getCanvas().style.cursor = "";
-            map.setFilter("stores-pins-hover", ["==", ["get", "id"], -1]);
-          };
-          map.on("mouseenter", "stores-hit-area", handlePinEnter);
-          map.on("mouseleave", "stores-hit-area", handlePinLeave);
-          map.on("mouseenter", "stores-pins", handlePinEnter);
-          map.on("mouseleave", "stores-pins", handlePinLeave);
+          // --- Hover effects (desktop only — no hover on touch devices) ---
+          const hasHover = window.matchMedia("(hover: hover)").matches;
+          if (hasHover) {
+            const handlePinEnter = (e: MapLayerMouseEvent) => {
+              map.getCanvas().style.cursor = "pointer";
+              const feature = e.features?.[0];
+              if (!feature || popupRef.current) return;
+              const id = Number(feature.properties?.id);
+              if (!Number.isFinite(id)) return;
+              map.setFilter("stores-pins-hover", ["==", ["get", "id"], id]);
+            };
+            const handlePinLeave = () => {
+              map.getCanvas().style.cursor = "";
+              map.setFilter("stores-pins-hover", ["==", ["get", "id"], -1]);
+            };
+            map.on("mouseenter", "stores-hit-area", handlePinEnter);
+            map.on("mouseleave", "stores-hit-area", handlePinLeave);
+            map.on("mouseenter", "stores-pins", handlePinEnter);
+            map.on("mouseleave", "stores-pins", handlePinLeave);
 
-          // --- Hover: clusters (slightly bigger) ---
-          const handleClusterEnter = (e: MapLayerMouseEvent) => {
-            map.getCanvas().style.cursor = "pointer";
-            const feature = e.features?.[0];
-            if (!feature) return;
-            const clusterId = feature.properties?.cluster_id as number | undefined;
-            if (clusterId == null) return;
-            map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], clusterId]);
-          };
-          const handleClusterLeave = () => {
-            map.getCanvas().style.cursor = "";
-            map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], -1]);
-          };
-          map.on("mouseenter", "clusters-hit-area", handleClusterEnter);
-          map.on("mouseleave", "clusters-hit-area", handleClusterLeave);
-          map.on("mouseenter", "clusters", handleClusterEnter);
-          map.on("mouseleave", "clusters", handleClusterLeave);
+            const handleClusterEnter = (e: MapLayerMouseEvent) => {
+              map.getCanvas().style.cursor = "pointer";
+              const feature = e.features?.[0];
+              if (!feature) return;
+              const clusterId = feature.properties?.cluster_id as number | undefined;
+              if (clusterId == null) return;
+              map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], clusterId]);
+            };
+            const handleClusterLeave = () => {
+              map.getCanvas().style.cursor = "";
+              map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], -1]);
+            };
+            map.on("mouseenter", "clusters-hit-area", handleClusterEnter);
+            map.on("mouseleave", "clusters-hit-area", handleClusterLeave);
+            map.on("mouseenter", "clusters", handleClusterEnter);
+            map.on("mouseleave", "clusters", handleClusterLeave);
+          }
         };
 
         map.on("load", async () => {
