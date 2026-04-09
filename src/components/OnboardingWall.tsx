@@ -47,6 +47,8 @@ export default function OnboardingWall({ onComplete, stats = DEFAULT_STATS }: Pr
   const [error, setError] = useState("");
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [oauthLoading, setOauthLoading] = useState<SocialProvider | null>(null);
   const [dir, setDir] = useState<"fwd" | "back">("fwd");
@@ -128,25 +130,44 @@ export default function OnboardingWall({ onComplete, stats = DEFAULT_STATS }: Pr
     setError(""); setEmailSubmitting(true);
 
     if (authConfigured) {
-      // Send magic link via Supabase
+      // Send OTP code via Supabase (no magic link, just 6-digit code)
       try {
         const supabase = createSupabaseBrowserClient();
         const { error: otpError } = await supabase.auth.signInWithOtp({
           email: normalizeEmail(email),
-          options: { emailRedirectTo: window.location.href },
+          options: { shouldCreateUser: true },
         });
         if (otpError) { setEmailSubmitting(false); setError(otpError.message); return; }
         setEmailSubmitting(false);
         setEmailSent(true);
       } catch (err) {
         setEmailSubmitting(false);
-        setError(err instanceof Error ? err.message : "Failed to send email");
+        setError(err instanceof Error ? err.message : "Failed to send code");
       }
     } else {
       // Fallback: direct access when Supabase not configured
       await completeAccess(email, "email");
     }
   }, [email, completeAccess, authConfigured]);
+
+  const handleVerifyOtp = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otpCode.length < 6) { setError("Enter the 6-digit code from your email."); return; }
+    setError(""); setVerifying(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: normalizeEmail(email),
+        token: otpCode.trim(),
+        type: "email",
+      });
+      if (verifyError) { setVerifying(false); setError(verifyError.message); return; }
+      // onAuthStateChange will fire SIGNED_IN and call completeAccess
+    } catch (err) {
+      setVerifying(false);
+      setError(err instanceof Error ? err.message : "Verification failed");
+    }
+  }, [otpCode, email]);
 
   const anim = dir === "fwd" ? "animate-[slide-in-right_0.3s_ease-out]" : "animate-[slide-in-left-subtle_0.3s_ease-out]";
 
@@ -312,7 +333,7 @@ export default function OnboardingWall({ onComplete, stats = DEFAULT_STATS }: Pr
                   className="w-full h-12 text-sm font-bold uppercase tracking-[0.16em]"
                   style={{ background: "#fff", color: "#2D2323", border: "none", cursor: emailSubmitting ? "default" : "pointer", opacity: emailSubmitting ? 0.6 : 1 }}
                 >
-                  {emailSubmitting ? "Sending..." : "Send magic link"}
+                  {emailSubmitting ? "Sending..." : "Send code"}
                 </button>
               </form>
 
@@ -326,7 +347,7 @@ export default function OnboardingWall({ onComplete, stats = DEFAULT_STATS }: Pr
             </div>
           )}
 
-          {/* ═══ STEP 3b: Check inbox ═══ */}
+          {/* ═══ STEP 3b: Enter OTP code ═══ */}
           {step === 3 && emailSent && (
             <div className="flex flex-col items-center text-center">
               <div className="mx-auto mb-5 flex items-center justify-center" style={{ width: 56, height: 56, border: "2px solid rgba(255,255,255,0.2)" }}>
@@ -339,21 +360,44 @@ export default function OnboardingWall({ onComplete, stats = DEFAULT_STATS }: Pr
                 className="text-[1.75rem] font-bold uppercase tracking-[-0.04em] mb-3 leading-[1.15]"
                 style={{ fontFamily: "'Montserrat', var(--font-display)", color: "#fff" }}
               >
-                Check your inbox
+                Enter the code
               </h2>
-              <p className="text-sm leading-relaxed mb-2" style={{ color: "rgba(255,255,255,0.55)" }}>
-                We sent a magic link to
+              <p className="text-sm leading-relaxed mb-1" style={{ color: "rgba(255,255,255,0.55)" }}>
+                We sent a 6-digit code to
               </p>
-              <p className="text-sm font-bold mb-6" style={{ color: "#fff" }}>
+              <p className="text-sm font-bold mb-5" style={{ color: "#fff" }}>
                 {email}
               </p>
-              <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
-                Click the link in the email to unlock the map. Check your spam folder if you don&apos;t see it.
-              </p>
+
+              <form onSubmit={handleVerifyOtp} className="w-full space-y-3">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={e => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="000000"
+                  autoFocus
+                  className="w-full h-14 px-4 outline-none text-center text-2xl font-bold tracking-[0.3em]"
+                  style={{ background: "transparent", border: "2px solid rgba(255,255,255,0.35)", color: "#fff", letterSpacing: "0.3em" }}
+                />
+                <button
+                  type="submit"
+                  disabled={verifying || otpCode.length < 6}
+                  className="w-full h-12 text-sm font-bold uppercase tracking-[0.16em]"
+                  style={{ background: "#fff", color: "#2D2323", border: "none", cursor: verifying ? "default" : "pointer", opacity: (verifying || otpCode.length < 6) ? 0.6 : 1 }}
+                >
+                  {verifying ? "Verifying..." : "Verify"}
+                </button>
+              </form>
+
+              {error && <p className="mt-3 text-xs" style={{ color: "#E4A08A" }}>{error}</p>}
+
               <button
                 type="button"
-                onClick={() => { setEmailSent(false); setEmail(""); }}
-                className="mt-6 text-xs font-bold uppercase tracking-[0.12em]"
+                onClick={() => { setEmailSent(false); setEmail(""); setOtpCode(""); setError(""); }}
+                className="mt-5 text-xs font-bold uppercase tracking-[0.12em]"
                 style={{ color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer" }}
               >
                 Use a different email
