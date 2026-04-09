@@ -749,7 +749,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
           </div>
 
           <div style={{ display: view === "map" ? "block" : "none", height: "100%" }}>
-            <MapView stores={filteredStores} height="100%" visible={view === "map"} onStoreSelect={handleMapStoreSelect} onReady={handleMapReady} onZoomOut={handleZoomOutToWorld} onViewportChange={handleViewportChange} />
+            <MapView stores={filteredStores} height="100%" visible={view === "map"} interactionLocked={selectedStore !== null} onStoreSelect={handleMapStoreSelect} onReady={handleMapReady} onZoomOut={handleZoomOutToWorld} onViewportChange={handleViewportChange} />
           </div>
           {view === "cards" && (
             <CardsView

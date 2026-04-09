@@ -186,6 +186,7 @@ interface Props {
   stores: Store[];
   height?: string;
   visible?: boolean;
+  interactionLocked?: boolean;
   initialView?: {
     center: [number, number];
     zoom: number;
@@ -200,6 +201,7 @@ function MapView({
   stores,
   height = "80vh",
   visible = true,
+  interactionLocked = false,
   initialView,
   onStoreSelect,
   onReady,
@@ -239,6 +241,36 @@ function MapView({
       setTimeout(() => mapRef.current?.resize(), 50);
     }
   }, [visible]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const container = containerRef.current;
+    if (!map || !container) return;
+
+    container.style.pointerEvents = interactionLocked ? "none" : "auto";
+
+    if (interactionLocked) {
+      popupRef.current?.remove();
+      popupRef.current = null;
+      map.stop();
+      map.dragPan.disable();
+      map.scrollZoom.disable();
+      map.boxZoom.disable();
+      map.doubleClickZoom.disable();
+      map.dragRotate.disable();
+      map.keyboard.disable();
+      map.touchZoomRotate.disable();
+      return;
+    }
+
+    map.dragPan.enable();
+    map.scrollZoom.enable();
+    map.boxZoom.enable();
+    map.doubleClickZoom.enable();
+    map.dragRotate.enable();
+    map.keyboard.enable();
+    map.touchZoomRotate.enable();
+  }, [interactionLocked]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -432,8 +464,9 @@ function MapView({
                 popupEvent.stopPropagation();
                 if (onStoreSelectRef.current) {
                   map.stop();
-                  onStoreSelectRef.current(store);
                   popup.remove();
+                  popupRef.current = null;
+                  onStoreSelectRef.current(store);
                 }
                 popupElement.removeEventListener("click", handlePopupClick);
               };
@@ -462,14 +495,6 @@ function MapView({
 
             const coords = (feature.geometry as Point).coordinates as [number, number];
             openStorePopup(coords, feature.properties || {});
-
-            const targetZoom = Math.max(map.getZoom(), 14.5);
-            map.easeTo({
-              center: coords,
-              zoom: targetZoom,
-              duration: map.getZoom() < 14.5 ? 950 : 420,
-              essential: true,
-            });
           };
 
           map.on("click", "stores-hit-area", handlePinClick);
