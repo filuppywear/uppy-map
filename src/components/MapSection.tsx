@@ -21,6 +21,7 @@ import ProfileView from "./ProfileView";
 import ProfileSetup from "./ProfileSetup";
 import { getProfile } from "@/actions/profile";
 import OnboardingWall from "./OnboardingWall";
+import { AnimatedNumber } from "./AnimatedNumber";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false });
 
@@ -62,7 +63,7 @@ function LoadingScreen({ onComplete, stats }: { onComplete: () => void; stats: D
     <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center transition-all duration-700 ${fading ? "opacity-0 scale-105" : "opacity-100"}`} style={{ background: "#302020" }}>
       <Image src="/branding/logo-white.svg" alt="" width={120} height={40} className="mb-12" style={{ filter: "brightness(10)" }} priority />
       <div className="text-7xl sm:text-8xl md:text-9xl font-black tabular-nums" style={{ fontFamily: "'Montserrat', var(--font-display)", color: "#FFFFFF", letterSpacing: "-0.03em" }}>
-        {stats.stores.toLocaleString()}
+        <AnimatedNumber value={stats.stores} />
       </div>
       <div className="text-sm font-black uppercase tracking-[0.4em] mt-4 mb-14" style={{ fontFamily: "'Montserrat', var(--font-display)", color: "#FFFFFF", opacity: 0.5 }}>
         secondhand stores
@@ -70,7 +71,7 @@ function LoadingScreen({ onComplete, stats }: { onComplete: () => void; stats: D
       <div className="flex gap-12">
         {[{ v: stats.cities, l: "cities" }, { v: stats.countries, l: "countries" }, { v: stats.continents, l: "continents" }].map((s) => (
           <div key={s.l} className="text-center">
-            <div className="text-2xl font-black tabular-nums" style={{ color: "#FFFFFF", fontFamily: "'Montserrat', var(--font-display)" }}>{s.v}</div>
+            <div className="text-2xl font-black tabular-nums" style={{ color: "#FFFFFF", fontFamily: "'Montserrat', var(--font-display)" }}><AnimatedNumber value={s.v} /></div>
             <div className="text-[11px] font-bold uppercase tracking-[0.2em] mt-1" style={{ color: "#FFFFFF", opacity: 0.3 }}>{s.l}</div>
           </div>
         ))}
@@ -540,8 +541,10 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
 
             {/* Center: logo */}
             <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">
-              <button onClick={() => { handleGeoNavigateTo(0); setView("map"); closeAll(); }} className="pointer-events-auto" style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+              <button onClick={() => { handleGeoNavigateTo(0); setView("map"); closeAll(); }} className="pointer-events-auto flex items-center gap-3" style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                 <Image src="/branding/logo-white.svg" alt="Uppy" width={94} height={28} className="h-7 w-auto object-contain" style={{ filter: "brightness(10)" }} />
+                <span style={{ color: "rgba(255,255,255,0.25)", fontSize: "11px", fontWeight: 700 }}>—</span>
+                <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", fontWeight: 700, fontFamily: "'Montserrat', var(--font-display)", letterSpacing: "-0.02em" }}>{filteredStores.length.toLocaleString()}</span>
               </button>
             </div>
 
@@ -632,7 +635,11 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
           {/* ══ MOBILE HEADER ══ */}
           <div className="lg:hidden">
             <div className="relative flex items-center justify-center px-3 h-14">
-              <button onClick={() => { handleGeoNavigateTo(0); setView("map"); closeAll(); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}><Image src="/branding/logo-white.svg" alt="Uppy" width={44} height={14} style={{ filter: "brightness(10)" }} /></button>
+              <button onClick={() => { handleGeoNavigateTo(0); setView("map"); closeAll(); }} className="flex items-center gap-2" style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                <Image src="/branding/logo-white.svg" alt="Uppy" width={44} height={14} style={{ filter: "brightness(10)" }} />
+                <span style={{ color: "rgba(255,255,255,0.25)", fontSize: "10px", fontWeight: 700 }}>—</span>
+                <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "12px", fontWeight: 700, fontFamily: "'Montserrat', var(--font-display)" }}>{filteredStores.length.toLocaleString()}</span>
+              </button>
               <div className="absolute right-3 flex items-center">
                 {isLoggedIn ? (
                   <Link href="/favorites" className="header-btn p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-white">

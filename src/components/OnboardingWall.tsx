@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient, hasSupabaseBrowserConfig } from "@/lib/sup
 import { isValidEmail, normalizeEmail, persistWaitlistSession, type WaitlistProvider } from "@/lib/waitlist";
 import { track } from "@/lib/analytics";
 import { DEFAULT_STATS, type DatasetStats } from "@/lib/types";
+import { AnimatedNumber } from "./AnimatedNumber";
 
 interface Props {
   onComplete: () => void;
@@ -23,22 +24,6 @@ function StepDots({ current, total }: { current: number; total: number }) {
       ))}
     </div>
   );
-}
-
-function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string }) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    const duration = 1200;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setDisplay(Math.round(eased * value));
-      if (t < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [value]);
-  return <>{display.toLocaleString()}{suffix}</>;
 }
 
 export default function OnboardingWall({ onComplete, stats = DEFAULT_STATS }: Props) {

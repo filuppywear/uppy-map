@@ -396,6 +396,36 @@ function MapView({
             },
           });
 
+          // --- Cluster hover layer (slightly bigger on desktop hover) ---
+          map.addLayer({
+            id: "clusters-hover",
+            type: "symbol",
+            source: "stores",
+            filter: ["==", ["get", "cluster_id"], -1],
+            layout: {
+              "icon-image": [
+                "step",
+                ["get", "point_count"],
+                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-48", "blob-dx-48"],
+                10,
+                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-62", "blob-dx-62"],
+                50,
+                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-80", "blob-dx-80"],
+              ],
+              "icon-rotate": ["%", ["*", ["get", "cluster_id"], 37], 40],
+              "icon-rotation-alignment": "map",
+              "icon-allow-overlap": true,
+              "icon-ignore-placement": true,
+              "icon-size": 1.15,
+              "text-field": ["get", "point_count_abbreviated"],
+              "text-size": 13,
+              "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+            },
+            paint: {
+              "text-color": "#FFFFFF",
+            },
+          });
+
           // --- Pin layer (4 variants, random per store) ---
           map.addLayer({
             id: "stores-hit-area",
@@ -424,6 +454,32 @@ function MapView({
                 "pin-0",
               ],
               "icon-size": 1.3,
+              "icon-anchor": "bottom",
+              "icon-allow-overlap": true,
+              "icon-ignore-placement": true,
+            },
+            paint: {
+              "icon-opacity": 1,
+            },
+          });
+
+          // --- Pin hover layer (much bigger on desktop hover) ---
+          map.addLayer({
+            id: "stores-pins-hover",
+            type: "symbol",
+            source: "stores",
+            filter: ["==", ["get", "id"], ""],
+            layout: {
+              "icon-image": [
+                "match",
+                ["get", "pin_variant"],
+                0, "pin-0",
+                1, "pin-1",
+                2, "pin-2",
+                3, "pin-3",
+                "pin-0",
+              ],
+              "icon-size": 1.8,
               "icon-anchor": "bottom",
               "icon-allow-overlap": true,
               "icon-ignore-placement": true,
@@ -509,17 +565,41 @@ function MapView({
           map.on("click", "stores-hit-area", handlePinClick);
           map.on("click", "stores-pins", handlePinClick);
 
-          const setPointerCursor = () => { map.getCanvas().style.cursor = "pointer"; };
-          const clearPointerCursor = () => { map.getCanvas().style.cursor = ""; };
+          // --- Hover: pins (much bigger) ---
+          const handlePinEnter = (e: MapLayerMouseEvent) => {
+            map.getCanvas().style.cursor = "pointer";
+            const feature = e.features?.[0];
+            if (!feature) return;
+            const id = String(feature.properties?.id ?? "");
+            if (!id) return;
+            map.setFilter("stores-pins-hover", ["==", ["get", "id"], id]);
+          };
+          const handlePinLeave = () => {
+            map.getCanvas().style.cursor = "";
+            map.setFilter("stores-pins-hover", ["==", ["get", "id"], ""]);
+          };
+          map.on("mouseenter", "stores-hit-area", handlePinEnter);
+          map.on("mouseleave", "stores-hit-area", handlePinLeave);
+          map.on("mouseenter", "stores-pins", handlePinEnter);
+          map.on("mouseleave", "stores-pins", handlePinLeave);
 
-          map.on("mouseenter", "stores-hit-area", setPointerCursor);
-          map.on("mouseleave", "stores-hit-area", clearPointerCursor);
-          map.on("mouseenter", "stores-pins", setPointerCursor);
-          map.on("mouseleave", "stores-pins", clearPointerCursor);
-          map.on("mouseenter", "clusters-hit-area", setPointerCursor);
-          map.on("mouseleave", "clusters-hit-area", clearPointerCursor);
-          map.on("mouseenter", "clusters", setPointerCursor);
-          map.on("mouseleave", "clusters", clearPointerCursor);
+          // --- Hover: clusters (slightly bigger) ---
+          const handleClusterEnter = (e: MapLayerMouseEvent) => {
+            map.getCanvas().style.cursor = "pointer";
+            const feature = e.features?.[0];
+            if (!feature) return;
+            const clusterId = feature.properties?.cluster_id as number | undefined;
+            if (clusterId == null) return;
+            map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], clusterId]);
+          };
+          const handleClusterLeave = () => {
+            map.getCanvas().style.cursor = "";
+            map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], -1]);
+          };
+          map.on("mouseenter", "clusters-hit-area", handleClusterEnter);
+          map.on("mouseleave", "clusters-hit-area", handleClusterLeave);
+          map.on("mouseenter", "clusters", handleClusterEnter);
+          map.on("mouseleave", "clusters", handleClusterLeave);
         };
 
         map.on("load", async () => {
