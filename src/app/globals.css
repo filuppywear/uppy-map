@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
 @font-face {
   font-family: "Helvetica Now Display";
@@ -1553,4 +1554,46 @@ p {
     height: 36px !important;
     font-size: 20px !important;
   }
+}
+
+/* ── Arcade leaderboard ─────────────────────────── */
+@keyframes arcade-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes arcade-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.arcade-scanlines {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  pointer-events: none;
+}
+
+.arcade-font {
+  font-family: "Press Start 2P", monospace;
+}
+
+.arcade-blink {
+  animation: arcade-blink 1.2s step-end infinite;
+}
+
+.arcade-pulse {
+  animation: arcade-pulse 2s ease-in-out infinite;
+}
+
+.arcade-row {
+  transition: background 0.1s;
+}
+
+.arcade-row:hover {
+  background: rgba(235, 233, 217, 0.06) !important;
 }

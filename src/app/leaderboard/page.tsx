@@ -5,6 +5,16 @@ import { useEffect, useState } from "react";
 import { getLeaderboard, type LeaderboardEntry } from "@/actions/proposals";
 import PageHeader from "@/components/PageHeader";
 
+const RANK_COLORS = [
+  "#EBE9D9",
+  "rgba(255,255,255,0.65)",
+  "#A58277",
+];
+
+function padRank(n: number) {
+  return String(n).padStart(2, "0");
+}
+
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,94 +30,119 @@ export default function LeaderboardPage() {
     <div className="min-h-screen" style={{ background: "#302020" }}>
       <PageHeader activePage="leaderboard" />
 
-      <div className="max-w-3xl mx-auto px-4 md:px-8 py-12">
+      {/* Scanlines overlay */}
+      <div className="arcade-scanlines fixed inset-0 z-[1]" />
+
+      <div className="relative z-[2] max-w-2xl mx-auto px-4 md:px-8 py-12">
+
+        {/* ── TITLE ── */}
         <div className="text-center mb-10">
-          <h1 className="font-bold uppercase" style={{ fontSize: "16px", letterSpacing: "0.12em", color: "#fff" }}>Leaderboard</h1>
-          <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", marginTop: "6px" }}>
-            Top contributors to the world&apos;s thrift map
+          <h1
+            className="arcade-font"
+            style={{ fontSize: "clamp(14px, 3.5vw, 22px)", color: "#EBE9D9", letterSpacing: "0.05em", lineHeight: 1.6 }}
+          >
+            HIGH SCORES
+          </h1>
+          <p
+            className="arcade-font arcade-pulse mt-3"
+            style={{ fontSize: "clamp(6px, 1.5vw, 8px)", color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em" }}
+          >
+            THE WORLD&apos;S THRIFT MAP
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mb-8">
-          <div className="flex items-center gap-2 px-3 sm:px-4 py-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
-            <span style={{ fontSize: "12px", color: "#fff" }}><strong>5 pts</strong></span>
-            <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.35)" }}>new store</span>
+        {/* ── POWER-UPS ── */}
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 mb-10">
+          <div className="px-4 py-2.5" style={{ border: "2px dashed rgba(235,233,217,0.2)" }}>
+            <span className="arcade-font" style={{ fontSize: "8px", color: "#EBE9D9" }}>
+              ★ NEW STORE = 500 PTS
+            </span>
           </div>
-          <div className="flex items-center gap-2 px-3 sm:px-4 py-2" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
-            <span style={{ fontSize: "12px", color: "#fff" }}><strong>3 pts</strong></span>
-            <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.35)" }}>edit / removal</span>
-          </div>
-        </div>
-
-        <div className="mb-8 px-5 py-4 flex items-start gap-3" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
-          <svg className="shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A58277" strokeWidth="1.5"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" /></svg>
-          <div>
-            <span className="font-bold uppercase" style={{ fontSize: "10px", letterSpacing: "0.15em", color: "#A58277" }}>Rewards coming soon</span>
-            <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)", lineHeight: "1.6", marginTop: "4px" }}>
-              Vintage prizes, 100% marketplace coupons, and exclusive perks for top contributors.
-            </p>
+          <div className="px-4 py-2.5" style={{ border: "2px dashed rgba(235,233,217,0.2)" }}>
+            <span className="arcade-font" style={{ fontSize: "8px", color: "#EBE9D9" }}>
+              ✎ EDIT = 300 PTS
+            </span>
           </div>
         </div>
 
-        <div style={{ background: "#fff" }}>
-          <div className="hidden md:flex items-center px-6 py-3" style={{ borderBottom: "2px solid rgba(36,27,25,0.06)" }}>
-            <span className="w-12 font-bold uppercase" style={{ fontSize: "10px", letterSpacing: "0.12em", color: "#A58277" }}>#</span>
-            <span className="flex-1 font-bold uppercase" style={{ fontSize: "10px", letterSpacing: "0.12em", color: "#A58277" }}>Contributor</span>
-            <span className="w-20 text-right font-bold uppercase" style={{ fontSize: "10px", letterSpacing: "0.12em", color: "#A58277" }}>Points</span>
-            <span className="w-24 text-right font-bold uppercase" style={{ fontSize: "10px", letterSpacing: "0.12em", color: "#A58277" }}>Approved</span>
+        {/* ── BONUS ROUND ── */}
+        <div className="mb-10 px-5 py-4 text-center" style={{ border: "2px dashed rgba(165,130,119,0.35)" }}>
+          <span className="arcade-font arcade-pulse" style={{ fontSize: "8px", color: "#A58277", letterSpacing: "0.08em" }}>
+            ★ BONUS ROUND — COMING SOON ★
+          </span>
+          <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", marginTop: "8px", lineHeight: 1.6 }}>
+            Vintage prizes, marketplace coupons, and exclusive perks for top players.
+          </p>
+        </div>
+
+        {/* ── HEADER ROW ── */}
+        <div className="hidden md:flex items-center px-4 py-2 mb-1" style={{ borderBottom: "2px solid rgba(235,233,217,0.12)" }}>
+          <span className="arcade-font w-14" style={{ fontSize: "7px", color: "rgba(255,255,255,0.25)" }}>RANK</span>
+          <span className="arcade-font flex-1" style={{ fontSize: "7px", color: "rgba(255,255,255,0.25)" }}>NAME</span>
+          <span className="arcade-font w-28 text-right" style={{ fontSize: "7px", color: "rgba(255,255,255,0.25)" }}>SCORE</span>
+        </div>
+
+        {/* ── SCORES ── */}
+        {loading && (
+          <div className="py-16 text-center">
+            <span className="arcade-font arcade-blink" style={{ fontSize: "8px", color: "rgba(255,255,255,0.4)" }}>
+              LOADING...
+            </span>
           </div>
+        )}
 
-          {loading && (
-            <div className="px-6 py-10 text-center" style={{ color: "rgba(36,27,25,0.35)" }}>
-              Loading leaderboard...
-            </div>
-          )}
+        {!loading && entries.length === 0 && (
+          <div className="py-16 text-center">
+            <span className="arcade-font" style={{ fontSize: "8px", color: "rgba(255,255,255,0.3)" }}>
+              NO SCORES YET
+            </span>
+          </div>
+        )}
 
-          {!loading && entries.length === 0 && (
-            <div className="px-6 py-10 text-center" style={{ color: "rgba(36,27,25,0.45)" }}>
-              No approved contributions yet.
-            </div>
-          )}
+        {!loading && entries.map((entry, i) => {
+          const color = i < 3 ? RANK_COLORS[i] : "rgba(255,255,255,0.35)";
+          const displayPoints = entry.points * 100;
 
-          {!loading && entries.map((entry, i) => (
+          return (
             <div
               key={entry.user_id}
-              className="flex items-center px-4 md:px-6 py-3.5 md:py-4"
-              style={{
-                borderBottom: "1px solid rgba(36,27,25,0.06)",
-                background: i < 3 ? "rgba(97,68,57,0.04)" : "#fff",
-              }}
+              className="arcade-row flex items-center px-4 py-3 md:py-3.5"
+              style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
             >
-              <span className="w-8 md:w-12 shrink-0 font-bold" style={{ fontSize: "14px", color: i < 3 ? "#614439" : "rgba(36,27,25,0.25)" }}>
-                {`#${i + 1}`}
+              <span className="arcade-font w-10 md:w-14 shrink-0" style={{ fontSize: "clamp(9px, 2vw, 12px)", color }}>
+                {padRank(i + 1)}
               </span>
-
-              <div className="flex-1 flex items-center gap-2 md:gap-3 min-w-0">
-                <div className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center shrink-0" style={{ background: i < 3 ? "#614439" : "rgba(36,27,25,0.05)", borderRadius: "50%" }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={i < 3 ? "#fff" : "rgba(36,27,25,0.2)"} strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                </div>
-                <span className="truncate" style={{ fontSize: "13px", fontWeight: i < 3 ? 700 : 500, color: "#302020" }}>
-                  {entry.username || "Anonymous"}
-                </span>
-              </div>
-
-              <span className="w-14 md:w-20 text-right font-bold shrink-0" style={{ fontSize: "15px", color: "#614439" }}>
-                {entry.points}
+              <span
+                className="flex-1 truncate"
+                style={{ fontSize: "clamp(11px, 2.5vw, 14px)", fontWeight: i < 3 ? 700 : 400, color, letterSpacing: "0.04em", textTransform: "uppercase" }}
+              >
+                {entry.username || "???"}
               </span>
-
-              <span className="hidden md:flex w-24 text-right items-center justify-end gap-1.5" style={{ fontSize: "12px", color: "rgba(36,27,25,0.35)" }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
-                {entry.approved_count}
+              <span className="arcade-font w-20 md:w-28 text-right shrink-0" style={{ fontSize: "clamp(9px, 2vw, 12px)", color }}>
+                {displayPoints.toLocaleString()}
               </span>
             </div>
-          ))}
-        </div>
+          );
+        })}
 
-        <div className="text-center mt-10">
-          <Link href="/" className="inline-block px-8 py-3 font-bold uppercase" style={{ fontSize: "10px", letterSpacing: "0.12em", background: "#fff", color: "#302020", textDecoration: "none", border: "1px solid rgba(255,255,255,0.15)" }}>
-            Explore the map
+        {/* ── FOOTER ── */}
+        <div className="text-center mt-12">
+          <Link
+            href="/"
+            className="arcade-font inline-block px-6 py-3"
+            style={{ fontSize: "8px", color: "#EBE9D9", border: "2px dashed rgba(235,233,217,0.25)", textDecoration: "none", letterSpacing: "0.05em" }}
+          >
+            EXPLORE THE MAP
           </Link>
-          <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.2)", marginTop: "8px" }}>Propose stores to climb the leaderboard</p>
+          <p
+            className="arcade-font arcade-blink mt-8"
+            style={{ fontSize: "clamp(6px, 1.5vw, 8px)", color: "rgba(255,255,255,0.3)", letterSpacing: "0.05em" }}
+          >
+            INSERT COIN — PROPOSE STORES TO RANK UP
+          </p>
+          <p className="mt-6" style={{ fontSize: "9px", color: "rgba(255,255,255,0.1)", letterSpacing: "0.2em" }}>
+            CREDIT 00
+          </p>
         </div>
       </div>
     </div>
