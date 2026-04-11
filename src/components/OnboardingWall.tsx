@@ -182,7 +182,7 @@ export default function OnboardingWall({ onComplete, stats = DEFAULT_STATS }: Pr
           {/* ═══ STEP 1: Hero with real numbers ═══ */}
           {step === 1 && (
             <div className="flex flex-col items-center text-center">
-              <Image src="/branding/logo-white.svg" alt="Uppy" width={48} height={16} className="mb-6" style={{ filter: "brightness(10)" }} />
+              <Image src="/branding/logo-white.svg" alt="Uppy" width={48} height={16} className="mb-6" />
 
               <div className="text-[10px] font-bold uppercase tracking-[0.16em] mb-6" style={{ color: "#A58277" }}>
                 Beta access

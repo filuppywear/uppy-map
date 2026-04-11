@@ -214,6 +214,8 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
   );
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState("");
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<SocialProvider | null>(null);
@@ -440,27 +442,25 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
           const supabase = createSupabaseBrowserClient();
           const { error: otpError } = await supabase.auth.signInWithOtp({
             email: normalized,
-            options: {
-              emailRedirectTo: window.location.href,
-            },
+            options: { shouldCreateUser: true },
           });
 
           if (otpError) {
             setEmailSubmitting(false);
-            setError(otpError.message || "Could not send the magic link.");
+            setError(otpError.message || "Could not send the code.");
             return;
           }
 
           setEmailSubmitting(false);
           setEmailSent(true);
-          track("gate_magic_link_sent", { userType: role });
+          track("gate_otp_sent", { userType: role });
           return;
         } catch (authError) {
           setEmailSubmitting(false);
           setError(
             authError instanceof Error
               ? authError.message
-              : "Could not send the magic link."
+              : "Could not send the code."
           );
           return;
         }
@@ -475,6 +475,38 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
     [authConfigured, completeAccess, email]
   );
 
+  const handleVerifyOtp = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (otpCode.length < 6) {
+        setError("Enter the 6-digit code from your email.");
+        return;
+      }
+      setError("");
+      setVerifying(true);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          email: normalizeEmail(email),
+          token: otpCode.trim(),
+          type: "email",
+        });
+        if (verifyError) {
+          setVerifying(false);
+          setError(verifyError.message || "Invalid or expired code.");
+          return;
+        }
+        // onAuthStateChange listener will call completeFromAuthUser
+      } catch (authError) {
+        setVerifying(false);
+        setError(
+          authError instanceof Error ? authError.message : "Verification failed."
+        );
+      }
+    },
+    [email, otpCode]
+  );
+
   if (step === "role") {
     return (
       <WaitlistFrame onClose={onClose}>
@@ -484,7 +516,6 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
           width={64}
           height={22}
           className="mb-8"
-          style={{ filter: "brightness(10)" }}
         />
         <h2
           className="text-xl font-bold uppercase tracking-tight mb-2 leading-tight"
@@ -551,24 +582,63 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
                 color: "#FFFFFF",
               }}
             >
-              Check your inbox
+              Enter the code
             </h2>
-            <p className="text-sm mb-2" style={{ color: "rgba(255,255,255,0.55)" }}>
-              We sent a magic link to
+            <p className="text-sm mb-1" style={{ color: "rgba(255,255,255,0.55)" }}>
+              We sent a 6-digit code to
             </p>
-            <p className="text-sm font-bold mb-6" style={{ color: "#FFFFFF" }}>
+            <p className="text-sm font-bold mb-5" style={{ color: "#FFFFFF" }}>
               {email}
             </p>
-            <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
-              Click the link in the email to log in and unlock the map on this device.
-            </p>
+
+            <form onSubmit={handleVerifyOtp} className="space-y-3">
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                placeholder="000000"
+                autoFocus
+                className="w-full h-14 px-4 outline-none text-center text-2xl font-bold"
+                style={{
+                  background: "transparent",
+                  border: "2px solid rgba(255,255,255,0.35)",
+                  color: "#FFFFFF",
+                  letterSpacing: "0.3em",
+                }}
+              />
+              <button
+                type="submit"
+                disabled={verifying || otpCode.length < 6}
+                className="w-full h-11 text-sm font-bold uppercase tracking-[0.16em]"
+                style={{
+                  background: "#FFFFFF",
+                  color: "#302020",
+                  border: "none",
+                  cursor: verifying ? "default" : "pointer",
+                  opacity: verifying || otpCode.length < 6 ? 0.6 : 1,
+                }}
+              >
+                {verifying ? "Verifying..." : "Verify"}
+              </button>
+            </form>
+
+            {error && (
+              <p className="mt-3 text-xs" style={{ color: "#E4A08A" }}>
+                {error}
+              </p>
+            )}
+
             <button
               type="button"
               onClick={() => {
                 setEmailSent(false);
+                setOtpCode("");
                 setError("");
               }}
-              className="mt-6 text-xs font-bold uppercase tracking-[0.12em]"
+              className="mt-5 text-xs font-bold uppercase tracking-[0.12em]"
               style={{ color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer" }}
             >
               Use a different email

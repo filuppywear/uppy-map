@@ -121,7 +121,7 @@ export default function CardsView({ stores, navStack, onNavigate, onStoreSelect 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               <div className="absolute inset-x-4 bottom-4 z-10">
-                <h3 className="text-base sm:text-lg font-bold leading-tight text-white">{item.name}</h3>
+                <h3 className="text-base sm:text-lg font-bold leading-tight text-white line-clamp-2">{item.name}</h3>
               </div>
             </button>
           ))}
@@ -155,7 +155,7 @@ export default function CardsView({ stores, navStack, onNavigate, onStoreSelect 
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               <div className="absolute inset-x-4 bottom-4 z-10">
-                <h3 className="text-base sm:text-lg font-bold leading-tight text-white">{store.name}</h3>
+                <h3 className="text-base sm:text-lg font-bold leading-tight text-white line-clamp-2">{store.name}</h3>
               </div>
             </button>
           ))}

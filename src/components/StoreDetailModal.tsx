@@ -191,7 +191,7 @@ export default function StoreDetailModal({ store, onClose, isSaved = false, onTo
           )}
 
           {/* Name */}
-          <h2 className="text-lg font-black uppercase tracking-tight leading-tight" style={{ color: "#fff" }}>
+          <h2 className="text-lg font-black uppercase tracking-tight leading-tight pr-20 break-words" style={{ color: "#fff" }}>
             {store.name}
           </h2>
 

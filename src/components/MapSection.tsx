@@ -743,12 +743,12 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
         <div className="flex-1 relative overflow-hidden">
           {/* Floating Map/Cards toggle + Back + Add store */}
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-            <button type="button" onClick={effectiveNav.length > 0 ? handleGoBack : undefined} className="header-btn flex items-center justify-center" style={{ width: "44px", height: "44px", background: "#302020", border: "1px solid rgba(97,68,57,0.5)", borderRadius: "50%", color: "rgba(255,255,255,0.5)", cursor: effectiveNav.length > 0 ? "pointer" : "default", opacity: effectiveNav.length > 0 ? 1 : 0.25, transition: "opacity 0.2s" }} title="Go back">
+            <button type="button" onClick={handleGoBack} disabled={effectiveNav.length === 0} aria-label="Go back" className="header-btn flex items-center justify-center" style={{ width: "44px", height: "44px", background: "#302020", border: "1px solid rgba(97,68,57,0.5)", borderRadius: "50%", color: "rgba(255,255,255,0.85)", cursor: effectiveNav.length > 0 ? "pointer" : "default", opacity: effectiveNav.length > 0 ? 1 : 0, pointerEvents: effectiveNav.length > 0 ? "auto" : "none", transition: "opacity 0.2s" }} title="Go back">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
             <div className="relative flex items-center" style={{ background: "#302020", backdropFilter: "blur(12px)", border: "1px solid rgba(97,68,57,0.5)", padding: "3px", borderRadius: "999px" }}>
               {/* Sliding indicator */}
-              <div style={{ position: "absolute", top: "3px", left: view === "map" ? "3px" : "50%", width: "calc(50% - 3px)", height: "calc(100% - 6px)", background: "#614439", borderRadius: "999px", transition: "left 0.25s cubic-bezier(0.4, 0, 0.2, 1)", pointerEvents: "none" }} />
+              <div style={{ position: "absolute", top: "3px", left: "3px", width: "calc(50% - 3px)", height: "calc(100% - 6px)", background: "#614439", borderRadius: "999px", transform: view === "map" ? "translateX(0)" : "translateX(100%)", transition: "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)", pointerEvents: "none", willChange: "transform" }} />
               {(["map", "cards"] as const).map(v => (
                 <button key={v} type="button" onClick={() => { setView(v); closeAll(); }} className="relative font-bold uppercase" style={{ fontSize: "10px", letterSpacing: "0.12em", padding: "7px 20px", color: view === v ? "#fff" : "rgba(255,255,255,0.3)", background: "transparent", border: "none", cursor: "pointer", transition: "color 0.2s", zIndex: 1 }}>
                   {v === "map" ? "Map" : "Cards"}
