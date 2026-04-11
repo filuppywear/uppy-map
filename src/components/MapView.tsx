@@ -574,8 +574,34 @@ function MapView({
           // --- Hover effects (desktop only — no hover on touch devices) ---
           const hasHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
           if (hasHover) {
+            let isInteracting = false;
+            const setCursor = (val: string) => {
+              if (!isInteracting) map.getCanvas().style.cursor = val;
+            };
+
+            // While dragging/zooming, force grabbing cursor and clear hover highlights
+            map.on("dragstart", () => {
+              isInteracting = true;
+              map.getCanvas().style.cursor = "grabbing";
+              map.setFilter("stores-pins-hover", ["==", ["get", "id"], -1]);
+              map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], -1]);
+            });
+            map.on("zoomstart", () => {
+              isInteracting = true;
+              map.setFilter("stores-pins-hover", ["==", ["get", "id"], -1]);
+              map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], -1]);
+            });
+            map.on("dragend", () => {
+              isInteracting = false;
+              map.getCanvas().style.cursor = "";
+            });
+            map.on("zoomend", () => {
+              isInteracting = false;
+            });
+
             const handlePinEnter = (e: MapLayerMouseEvent) => {
-              map.getCanvas().style.cursor = "pointer";
+              if (isInteracting) return;
+              setCursor("pointer");
               const feature = e.features?.[0];
               if (!feature || popupRef.current) return;
               const id = Number(feature.properties?.id);
@@ -583,7 +609,7 @@ function MapView({
               map.setFilter("stores-pins-hover", ["==", ["get", "id"], id]);
             };
             const handlePinLeave = () => {
-              map.getCanvas().style.cursor = "";
+              setCursor("");
               map.setFilter("stores-pins-hover", ["==", ["get", "id"], -1]);
             };
             map.on("mouseenter", "stores-hit-area", handlePinEnter);
@@ -592,7 +618,8 @@ function MapView({
             map.on("mouseleave", "stores-pins", handlePinLeave);
 
             const handleClusterEnter = (e: MapLayerMouseEvent) => {
-              map.getCanvas().style.cursor = "pointer";
+              if (isInteracting) return;
+              setCursor("pointer");
               const feature = e.features?.[0];
               if (!feature) return;
               const clusterId = feature.properties?.cluster_id as number | undefined;
@@ -600,7 +627,7 @@ function MapView({
               map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], clusterId]);
             };
             const handleClusterLeave = () => {
-              map.getCanvas().style.cursor = "";
+              setCursor("");
               map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], -1]);
             };
             map.on("mouseenter", "clusters-hit-area", handleClusterEnter);
