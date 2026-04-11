@@ -501,15 +501,15 @@ function MapView({
             map.stop();
             map.easeTo({ center: coords, duration: 300 });
 
+            const isMobile = window.matchMedia("(max-width: 1024px)").matches;
             const popup = new mapboxgl.Popup({
               className: "sw-popup",
-              offset: [0, -38],
+              offset: isMobile ? 20 : [0, -38],
               closeButton: true,
               closeOnClick: true,
               closeOnMove: false,
               focusAfterOpen: false,
-              maxWidth: "280px",
-              anchor: "bottom",
+              maxWidth: isMobile ? "calc(100vw - 32px)" : "280px",
             })
               .setLngLat(coords)
               .setHTML(buildPopupHTML(properties))

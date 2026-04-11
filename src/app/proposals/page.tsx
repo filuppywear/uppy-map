@@ -38,21 +38,21 @@ export default function ProposalsPage() {
   };
 
   if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center" style={{ background: "#302020" }}><p style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px" }}>Loading...</p></div>;
+    return <div className="min-h-screen flex items-center justify-center" style={{ background: "#2D2323" }}><p style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px" }}>Loading...</p></div>;
   }
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6" style={{ background: "#302020" }}>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6" style={{ background: "#2D2323" }}>
         <Image src="/branding/logo-white.svg" alt="Uppy" width={80} height={28} style={{ filter: "brightness(10)" }} />
         <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)" }}>Sign in to see your proposals.</p>
-        <Link href="/" style={{ fontSize: "12px", background: "#fff", color: "#302020", textDecoration: "none", padding: "10px 24px", fontWeight: 700 }}>Go to map</Link>
+        <Link href="/" style={{ fontSize: "12px", background: "#fff", color: "#2D2323", textDecoration: "none", padding: "10px 24px", fontWeight: 700 }}>Go to map</Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "#302020" }}>
+    <div className="min-h-screen" style={{ background: "#2D2323" }}>
       <PageHeader activePage="map" />
       <div className="max-w-2xl mx-auto p-6 pt-8">
         <h1 className="font-bold uppercase mb-2" style={{ fontSize: "16px", letterSpacing: "0.08em", color: "#fff" }}>My Proposals</h1>

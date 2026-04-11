@@ -62,7 +62,7 @@ function WaitlistFrame({ children, onClose }: WaitlistFrameProps) {
     >
       <div
         className="relative w-full max-w-sm"
-        style={{ background: "#302020", padding: "40px 32px 36px" }}
+        style={{ background: "#2D2323", padding: "40px 32px 36px" }}
       >
         <button
           type="button"
@@ -549,7 +549,7 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
             className="py-4 text-sm font-bold uppercase tracking-[0.16em]"
             style={{
               background: "#FFFFFF",
-              color: "#302020",
+              color: "#2D2323",
               border: "none",
               cursor: "pointer",
             }}
@@ -615,7 +615,7 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
                 className="w-full h-11 text-sm font-bold uppercase tracking-[0.16em]"
                 style={{
                   background: "#FFFFFF",
-                  color: "#302020",
+                  color: "#2D2323",
                   border: "none",
                   cursor: verifying ? "default" : "pointer",
                   opacity: verifying || otpCode.length < 6 ? 0.6 : 1,
@@ -705,7 +705,7 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
                 className="w-full h-11 text-sm font-bold uppercase tracking-[0.16em]"
                 style={{
                   background: "#FFFFFF",
-                  color: "#302020",
+                  color: "#2D2323",
                   border: "none",
                   cursor: emailSubmitting ? "default" : "pointer",
                   opacity: emailSubmitting ? 0.6 : 1,
@@ -759,7 +759,7 @@ export default function WaitlistPopup({ onClose }: WaitlistPopupProps) {
           type="button"
           onClick={finish}
           className="w-full h-11 text-sm font-bold uppercase tracking-[0.16em]"
-          style={{ background: "#FFFFFF", color: "#302020", border: "none", cursor: "pointer" }}
+          style={{ background: "#FFFFFF", color: "#2D2323", border: "none", cursor: "pointer" }}
         >
           Open the map
         </button>

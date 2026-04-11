@@ -8,7 +8,7 @@ import { resolve } from "path";
 
 const csvPath =
   process.env.UPPY_MAP_SOURCE_CSV ||
-  resolve(__dirname, "../../all_stores_unified_UPPY_CURATED_V5.csv");
+  resolve(__dirname, "../../all_stores_unified_UPPY_CURATED_V6.csv");
 const outPath = resolve(__dirname, "../public/data/stores.json");
 const statsPath = resolve(__dirname, "../public/data/stats.json");
 

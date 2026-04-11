@@ -49,15 +49,15 @@ export default function AdminPage() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center" style={{ background: "#302020" }}><p style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px" }}>Loading...</p></div>;
+    return <div className="min-h-screen flex items-center justify-center" style={{ background: "#2D2323" }}><p style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px" }}>Loading...</p></div>;
   }
 
   if (!authorized) {
-    return <div className="min-h-screen flex items-center justify-center" style={{ background: "#302020" }}><p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px" }}>Not authorized.</p></div>;
+    return <div className="min-h-screen flex items-center justify-center" style={{ background: "#2D2323" }}><p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px" }}>Not authorized.</p></div>;
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "#302020" }}>
+    <div className="min-h-screen" style={{ background: "#2D2323" }}>
       <PageHeader activePage="map" />
       <div className="max-w-3xl mx-auto p-6 pt-8">
         <h1 className="font-bold uppercase mb-2" style={{ fontSize: "16px", letterSpacing: "0.08em", color: "#fff" }}>Admin — Moderation</h1>

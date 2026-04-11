@@ -60,7 +60,7 @@ function LoadingScreen({ onComplete, stats }: { onComplete: () => void; stats: D
   }, [onComplete]);
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center transition-all duration-700 ${fading ? "opacity-0 scale-105" : "opacity-100"}`} style={{ background: "#302020" }}>
+    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center transition-all duration-700 ${fading ? "opacity-0 scale-105" : "opacity-100"}`} style={{ background: "#2D2323" }}>
       <Image src="/branding/logo-white.svg" alt="" width={120} height={40} className="mb-12" style={{ filter: "brightness(10)" }} priority />
       <div className="text-7xl sm:text-8xl md:text-9xl font-black tabular-nums" style={{ fontFamily: "'Montserrat', var(--font-display)", color: "#FFFFFF", letterSpacing: "-0.03em" }}>
         <AnimatedNumber value={stats.stores} />
@@ -137,7 +137,7 @@ function GeoPills({ items, onSelect, label, onLabelClick }: { items: { name: str
    ═══════════════════════════════════════════════════ */
 export function MiniFooter() {
   return (
-    <footer className="px-4 py-3 text-center text-[10px] leading-relaxed" style={{ background: "#302020", color: "#FFFFFF", borderTop: "1px solid rgba(255,255,255,0.06)", opacity: 0.4 }}>
+    <footer className="px-4 py-3 text-center text-[10px] leading-relaxed" style={{ background: "#2D2323", color: "#FFFFFF", borderTop: "1px solid rgba(255,255,255,0.06)", opacity: 0.4 }}>
       Uppy srl &middot; VAT 04914300167 &middot; 291 Bolagnos Street, Caravaggio 24043
     </footer>
   );
@@ -525,7 +525,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
       <div className={`h-screen flex flex-col pb-[4.5rem] lg:pb-0 transition-all duration-700 ${phase === "loading" ? "opacity-0" : "opacity-100"}`}>
 
         {/* ══ HEADER ══ */}
-        <div className="sticky top-0 z-30" style={{ background: "#302020" }}>
+        <div className="sticky top-0 z-30" style={{ background: "#2D2323" }}>
 
           {/* ══ DESKTOP HEADER — Row 1: Nav / Logo / Icons ══ */}
           <div className="hidden lg:flex items-center h-12 px-4 md:px-8" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
@@ -577,7 +577,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
           </div>
 
           {/* ══ DESKTOP HEADER — Row 2: Crumbs (left) + Cities (center) + Filter (right) ══ */}
-          <div className="hidden lg:flex items-center px-4 md:px-8 h-10 relative" style={{ background: "#302020", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="hidden lg:flex items-center px-4 md:px-8 h-10 relative" style={{ background: "#2D2323", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             {/* Crumbs — left */}
             <nav className="flex items-center gap-2 shrink-0" style={{ lineHeight: 1 }}>
               <button onClick={() => handleGeoNavigateTo(0)} className="header-btn geo-header__jump" style={{ fontSize: "11px", fontWeight: effectiveNav.length === 0 ? 700 : 500, textTransform: "uppercase" as const, color: effectiveNav.length === 0 ? "#fff" : "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>World</button>
@@ -622,7 +622,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
                     <div className="text-[10px] font-bold uppercase tracking-[0.15em] mt-3 mb-2" style={{ color: "rgba(255,255,255,0.3)" }}>Min rating</div>
                     <div className="flex gap-1">
                       {[0, 3, 3.5, 4, 4.5].map(r => (
-                        <button key={r} onClick={() => setMinRating(r)} className="px-2 py-1 text-[11px] font-bold" style={{ color: minRating === r ? "#302020" : "rgba(255,255,255,0.6)", background: minRating === r ? "#fff" : "transparent", border: "1px solid rgba(255,255,255,0.15)", cursor: "pointer" }}>{r === 0 ? "All" : `${r}+`}</button>
+                        <button key={r} onClick={() => setMinRating(r)} className="px-2 py-1 text-[11px] font-bold" style={{ color: minRating === r ? "#2D2323" : "rgba(255,255,255,0.6)", background: minRating === r ? "#fff" : "transparent", border: "1px solid rgba(255,255,255,0.15)", cursor: "pointer" }}>{r === 0 ? "All" : `${r}+`}</button>
                       ))}
                     </div>
                   </div>
@@ -714,24 +714,24 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
           <div className="md:hidden fixed inset-0 z-40" onClick={() => setMobileMenuOpen(false)}>
             <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.5)" }} />
             <div className="absolute bottom-0 left-0 right-0 p-5 pb-8" style={{ background: "#FFFFFF" }} onClick={e => e.stopPropagation()}>
-              <div className="text-sm font-black mb-4" style={{ color: "#302020", fontFamily: "Inter, sans-serif" }}>Filters</div>
-              <div className="text-xs font-bold mb-2" style={{ color: "#302020", fontFamily: "Inter, sans-serif" }}>Categories</div>
+              <div className="text-sm font-black mb-4" style={{ color: "#2D2323", fontFamily: "Inter, sans-serif" }}>Filters</div>
+              <div className="text-xs font-bold mb-2" style={{ color: "#2D2323", fontFamily: "Inter, sans-serif" }}>Categories</div>
               <div className="grid grid-cols-2 gap-2 mb-5">
                 {CATEGORIES.map(cat => (
-                  <button key={cat.key} onClick={() => toggleCategory(cat.key)} className="text-left px-3 py-3 text-sm font-bold min-h-[44px]" style={{ color: "#302020", background: activeCategories.has(cat.key) ? "rgba(45,35,35,0.08)" : "#FFFFFF", border: "2px solid #302020", cursor: "pointer" }}>
+                  <button key={cat.key} onClick={() => toggleCategory(cat.key)} className="text-left px-3 py-3 text-sm font-bold min-h-[44px]" style={{ color: "#2D2323", background: activeCategories.has(cat.key) ? "rgba(45,35,35,0.08)" : "#FFFFFF", border: "2px solid #2D2323", cursor: "pointer" }}>
                     {cat.label}
                   </button>
                 ))}
               </div>
-              <div className="text-xs font-bold mb-2" style={{ color: "#302020", fontFamily: "Inter, sans-serif" }}>Rating</div>
+              <div className="text-xs font-bold mb-2" style={{ color: "#2D2323", fontFamily: "Inter, sans-serif" }}>Rating</div>
               <div className="flex gap-2 mb-4">
                 {[0, 3, 3.5, 4, 4.5].map(r => (
-                  <button key={r} onClick={() => { setMinRating(r); setMobileMenuOpen(false); }} className="flex-1 py-3 text-sm font-bold min-h-[44px]" style={{ color: "#302020", background: minRating === r ? "rgba(45,35,35,0.08)" : "#FFFFFF", border: "2px solid #302020", cursor: "pointer" }}>
+                  <button key={r} onClick={() => { setMinRating(r); setMobileMenuOpen(false); }} className="flex-1 py-3 text-sm font-bold min-h-[44px]" style={{ color: "#2D2323", background: minRating === r ? "rgba(45,35,35,0.08)" : "#FFFFFF", border: "2px solid #2D2323", cursor: "pointer" }}>
                     {r === 0 ? "All" : `${r}+`}
                   </button>
                 ))}
               </div>
-              <div className="text-center text-xs font-bold" style={{ color: "#302020" }}>{filteredStores.length.toLocaleString()} stores</div>
+              <div className="text-center text-xs font-bold" style={{ color: "#2D2323" }}>{filteredStores.length.toLocaleString()} stores</div>
             </div>
           </div>
         )}
@@ -743,10 +743,10 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
         <div className="flex-1 relative overflow-hidden">
           {/* Floating Map/Cards toggle + Back + Add store */}
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-            <button type="button" onClick={handleGoBack} disabled={effectiveNav.length === 0} aria-label="Go back" className="header-btn flex items-center justify-center" style={{ width: "44px", height: "44px", background: "#302020", border: "1px solid rgba(97,68,57,0.5)", borderRadius: "50%", color: "rgba(255,255,255,0.85)", cursor: effectiveNav.length > 0 ? "pointer" : "default", opacity: effectiveNav.length > 0 ? 1 : 0, pointerEvents: effectiveNav.length > 0 ? "auto" : "none", transition: "opacity 0.2s" }} title="Go back">
+            <button type="button" onClick={handleGoBack} disabled={effectiveNav.length === 0} aria-label="Go back" className="header-btn flex items-center justify-center" style={{ width: "44px", height: "44px", background: "#2D2323", border: "1px solid rgba(97,68,57,0.5)", borderRadius: "50%", color: "rgba(255,255,255,0.85)", cursor: effectiveNav.length > 0 ? "pointer" : "default", opacity: effectiveNav.length > 0 ? 1 : 0, pointerEvents: effectiveNav.length > 0 ? "auto" : "none", transition: "opacity 0.2s" }} title="Go back">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
-            <div className="relative flex items-center" style={{ background: "#302020", backdropFilter: "blur(12px)", border: "1px solid rgba(97,68,57,0.5)", padding: "3px", borderRadius: "999px" }}>
+            <div className="relative flex items-center" style={{ background: "#2D2323", backdropFilter: "blur(12px)", border: "1px solid rgba(97,68,57,0.5)", padding: "3px", borderRadius: "999px" }}>
               {/* Sliding indicator */}
               <div style={{ position: "absolute", top: "3px", left: "3px", width: "calc(50% - 3px)", height: "calc(100% - 6px)", background: "#614439", borderRadius: "999px", transform: view === "map" ? "translateX(0)" : "translateX(100%)", transition: "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)", pointerEvents: "none", willChange: "transform" }} />
               {(["map", "cards"] as const).map(v => (
@@ -755,7 +755,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
                 </button>
               ))}
             </div>
-            <button type="button" onClick={() => isLoggedIn ? setShowNewStoreForm(true) : setShowAuthPopup(true)} className="header-btn flex items-center justify-center" style={{ width: "44px", height: "44px", background: "#302020", border: "1px solid rgba(97,68,57,0.5)", borderRadius: "50%", color: "rgba(255,255,255,0.5)", cursor: "pointer" }} title="Propose a store">
+            <button type="button" onClick={() => isLoggedIn ? setShowNewStoreForm(true) : setShowAuthPopup(true)} className="header-btn flex items-center justify-center" style={{ width: "44px", height: "44px", background: "#2D2323", border: "1px solid rgba(97,68,57,0.5)", borderRadius: "50%", color: "rgba(255,255,255,0.5)", cursor: "pointer" }} title="Propose a store">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </button>
           </div>
@@ -792,7 +792,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
 
       {marketNotice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(18,12,12,0.75)", backdropFilter: "blur(4px)" }} onClick={() => setMarketNotice(false)}>
-          <div className="relative w-full max-w-sm p-8 text-center" style={{ background: "#302020" }} onClick={e => e.stopPropagation()}>
+          <div className="relative w-full max-w-sm p-8 text-center" style={{ background: "#2D2323" }} onClick={e => e.stopPropagation()}>
             <button onClick={() => setMarketNotice(false)} className="header-btn absolute top-3 right-3" style={{ width: 32, height: 32, background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>

@@ -23,7 +23,7 @@ export default function PageHeader({ activePage }: Props) {
   });
 
   return (
-    <div className="sticky top-0 z-30" style={{ background: "#302020" }}>
+    <div className="sticky top-0 z-30" style={{ background: "#2D2323" }}>
       <div className="hidden lg:flex items-center h-12 px-4 md:px-8" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
         <nav className="flex items-center gap-5">
           <Link href="/?market=1" className="header-btn font-bold uppercase flex items-center gap-1.5" style={{ ...linkStyle(false), color: "rgba(255,255,255,0.5)" }}>

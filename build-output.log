@@ -1,0 +1,49 @@
+
+> uppy-map@0.1.0 build
+> next build
+
+▲ Next.js 16.2.2 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Found 1 warning while optimizing generated CSS:
+
+[2m│   }[22m
+[2m│ }[22m
+[2m│[22m @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+[2m┆[22m        [33m[2m^--[22m @import rules must precede all rules aside from @charset and @layer statements[39m
+[2m┆[22m
+[2m│ @font-face {[22m
+[2m│   font-family: "Helvetica Now Display";[22m
+
+✓ Compiled successfully in 4.9s
+  Running TypeScript ...
+  Finished TypeScript in 2.7s ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/14) ...
+  Generating static pages using 15 workers (3/14) 
+  Generating static pages using 15 workers (6/14) 
+  Generating static pages using 15 workers (10/14) 
+✓ Generating static pages using 15 workers (14/14) in 835ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin
+├ ƒ /api/waitlist
+├ ○ /favorites
+├ ○ /leaderboard
+├ ○ /opengraph-image
+├ ○ /profile
+├ ○ /proposals
+├ ○ /robots.txt
+├ ○ /sitemap.xml
+└ ○ /twitter-image
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

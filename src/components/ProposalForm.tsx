@@ -56,7 +56,7 @@ export default function ProposalForm({ mode, store, onClose, onSuccess }: Props)
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ background: "rgba(18,12,12,0.75)", backdropFilter: "blur(4px)" }} onClick={onClose}>
-      <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto px-5 py-7 sm:px-7 sm:py-8" style={{ background: "#302020" }} onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto px-5 py-7 sm:px-7 sm:py-8" style={{ background: "#2D2323" }} onClick={(e) => e.stopPropagation()}>
         <button type="button" onClick={onClose} className="header-btn absolute top-2 right-2 p-3 min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)" }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
@@ -73,7 +73,7 @@ export default function ProposalForm({ mode, store, onClose, onSuccess }: Props)
         ) : (
           <div className="flex flex-col gap-3">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Store name *" className="w-full px-3 py-2 outline-none" style={{ fontSize: "12px", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", color: "#fff" }} />
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-3 py-2 outline-none" style={{ fontSize: "12px", background: "#302020", border: "1px solid rgba(255,255,255,0.15)", color: category ? "#fff" : "rgba(255,255,255,0.4)" }}>
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-3 py-2 outline-none" style={{ fontSize: "12px", background: "#2D2323", border: "1px solid rgba(255,255,255,0.15)", color: category ? "#fff" : "rgba(255,255,255,0.4)" }}>
               <option value="">Category</option>
               {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
             </select>
@@ -93,7 +93,7 @@ export default function ProposalForm({ mode, store, onClose, onSuccess }: Props)
         {error && <p style={{ fontSize: "11px", color: "rgba(220,80,80,0.8)", marginTop: "8px" }}>{error}</p>}
 
         <div className="flex gap-2 mt-5">
-          <button type="button" onClick={handleSubmit} disabled={submitting} style={{ fontSize: "10px", letterSpacing: "0.1em", background: "#fff", color: "#302020", border: "none", padding: "10px 24px", cursor: submitting ? "default" : "pointer", fontWeight: 700, opacity: submitting ? 0.6 : 1 }}>
+          <button type="button" onClick={handleSubmit} disabled={submitting} style={{ fontSize: "10px", letterSpacing: "0.1em", background: "#fff", color: "#2D2323", border: "none", padding: "10px 24px", cursor: submitting ? "default" : "pointer", fontWeight: 700, opacity: submitting ? 0.6 : 1 }}>
             {submitting ? "Submitting..." : "Submit proposal"}
           </button>
           <button type="button" onClick={onClose} className="action-icon" style={{ fontSize: "10px", letterSpacing: "0.1em", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.4)", background: "transparent", padding: "10px 16px", cursor: "pointer", fontWeight: 700 }}>

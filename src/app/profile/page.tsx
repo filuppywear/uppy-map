@@ -31,7 +31,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#302020" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#2D2323" }}>
         <p style={{ color: "rgba(255,255,255,0.5)" }}>Loading...</p>
       </div>
     );
@@ -39,10 +39,10 @@ export default function ProfilePage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6" style={{ background: "#302020" }}>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6" style={{ background: "#2D2323" }}>
         <Image src="/branding/logo-white.svg" alt="Uppy" width={80} height={28} style={{ filter: "brightness(10)" }} />
         <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>Sign in to view your profile.</p>
-        <Link href="/" className="text-sm font-bold uppercase tracking-wider px-6 py-3" style={{ background: "#fff", color: "#302020", textDecoration: "none" }}>
+        <Link href="/" className="text-sm font-bold uppercase tracking-wider px-6 py-3" style={{ background: "#fff", color: "#2D2323", textDecoration: "none" }}>
           Go to map
         </Link>
       </div>
@@ -60,7 +60,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: "#302020" }}>
+    <div className="min-h-screen" style={{ background: "#2D2323" }}>
       <PageHeader activePage="map" />
       <div className="max-w-lg mx-auto px-4 md:px-6 py-6 md:pt-8">
 
@@ -103,7 +103,7 @@ export default function ProfilePage() {
             <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone (optional)" className="w-full h-11 px-4 text-sm outline-none" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#fff" }} />
             <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Bio" rows={3} className="w-full px-4 py-3 text-sm outline-none resize-none" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#fff" }} />
             <div className="flex gap-3">
-              <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 text-xs font-bold uppercase tracking-wider" style={{ background: "#fff", color: "#302020", border: "none", cursor: "pointer", opacity: saving ? 0.6 : 1 }}>
+              <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 text-xs font-bold uppercase tracking-wider" style={{ background: "#fff", color: "#2D2323", border: "none", cursor: "pointer", opacity: saving ? 0.6 : 1 }}>
                 {saving ? "Saving..." : "Save"}
               </button>
               <button onClick={() => setEditing(false)} className="action-icon px-4 py-2.5 text-xs font-bold uppercase tracking-wider" style={{ border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.5)", background: "transparent", cursor: "pointer" }}>

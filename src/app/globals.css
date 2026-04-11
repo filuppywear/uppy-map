@@ -44,7 +44,7 @@
   --tracking-ui: 0.05em;
   --tracking-label: 0.05em;
   --tracking-button: 0.05em;
-  --surface: #302020;
+  --surface: #2D2323;
   --surface-deep: #2D2323;
   --surface-lift: #3a2c2c;
   --tertiary: #A58277;
@@ -1186,7 +1186,7 @@ p {
 }
 
 .mapboxgl-popup .mapboxgl-popup-content {
-  background: #302020 !important;
+  background: #2D2323 !important;
   color: #fff !important;
   border-radius: 0 !important;
   padding: 0 !important;
@@ -1203,10 +1203,10 @@ p {
 }
 
 .mapboxgl-popup .mapboxgl-popup-tip {
-  border-top-color: #302020 !important;
-  border-bottom-color: #302020 !important;
-  border-left-color: #302020 !important;
-  border-right-color: #302020 !important;
+  border-top-color: #2D2323 !important;
+  border-bottom-color: #2D2323 !important;
+  border-left-color: #2D2323 !important;
+  border-right-color: #2D2323 !important;
 }
 
 .mini-popup {
@@ -1215,7 +1215,7 @@ p {
   width: 220px !important;
   padding: 0 !important;
   overflow: hidden;
-  background: #302020 !important;
+  background: #2D2323 !important;
   color: #fff !important;
 }
 
@@ -1310,7 +1310,7 @@ p {
 
 .mini-popup__btn:hover {
   background: #fff;
-  color: #302020;
+  color: #2D2323;
 }
 
 .user-location-dot {
@@ -1534,7 +1534,7 @@ p {
   }
 
   .mini-popup {
-    width: calc(100vw - 48px) !important;
+    width: calc(100vw - 32px) !important;
     max-width: 320px !important;
   }
 

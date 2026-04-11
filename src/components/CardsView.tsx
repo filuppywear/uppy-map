@@ -88,7 +88,7 @@ export default function CardsView({ stores, navStack, onNavigate, onStoreSelect 
       <div className="px-4 md:px-8 pt-14 pb-4" style={{ background: "#fff" }}>
         <h2
           className="text-[2rem] md:text-[2.4rem] font-bold tracking-tight"
-          style={{ color: "#302020", fontFamily: "var(--font-display)" }}
+          style={{ color: "#2D2323", fontFamily: "var(--font-display)" }}
         >
           {title}
         </h2>

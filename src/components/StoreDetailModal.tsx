@@ -165,10 +165,10 @@ export default function StoreDetailModal({ store, onClose, isSaved = false, onTo
       <div
         className="relative w-full lg:max-w-2xl max-h-[calc(100dvh-var(--sai-top))] lg:max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "#302020", boxShadow: "0 28px 80px rgba(36,27,25,0.24)", overscrollBehavior: "contain" }}
+        style={{ background: "#2D2323", boxShadow: "0 28px 80px rgba(36,27,25,0.24)", overscrollBehavior: "contain" }}
       >
         {/* Top actions — heart + close */}
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+        <div className="absolute right-3 z-10 flex items-center gap-1.5" style={{ top: "calc(0.75rem + var(--sai-top))" }}>
           {onToggleSave && (
             <button type="button" onClick={() => onToggleSave(store.id)} className="header-btn p-3 min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ color: isSaved ? "#fff" : "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer" }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>

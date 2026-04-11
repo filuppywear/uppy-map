@@ -29,7 +29,7 @@ export default function ProfileView({ onAuthRequired }: { onAuthRequired: () => 
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center" style={{ background: "#302020" }}>
+      <div className="h-full flex items-center justify-center" style={{ background: "#2D2323" }}>
         <p style={{ color: "rgba(255,255,255,0.5)" }}>Loading...</p>
       </div>
     );
@@ -37,10 +37,10 @@ export default function ProfileView({ onAuthRequired }: { onAuthRequired: () => 
 
   if (!isLoggedIn) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 p-6" style={{ background: "#302020" }}>
+      <div className="h-full flex flex-col items-center justify-center gap-4 p-6" style={{ background: "#2D2323" }}>
         <Image src="/branding/logo-white.svg" alt="Uppy" width={80} height={28} style={{ filter: "brightness(10)" }} />
         <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>Sign in to view your profile.</p>
-        <button onClick={onAuthRequired} className="text-sm font-bold uppercase tracking-[0.16em] px-6 py-3" style={{ background: "#fff", color: "#302020", border: "none", cursor: "pointer" }}>
+        <button onClick={onAuthRequired} className="text-sm font-bold uppercase tracking-[0.16em] px-6 py-3" style={{ background: "#fff", color: "#2D2323", border: "none", cursor: "pointer" }}>
           Sign in
         </button>
       </div>
@@ -61,7 +61,7 @@ export default function ProfileView({ onAuthRequired }: { onAuthRequired: () => 
   };
 
   return (
-    <div className="h-full overflow-y-auto" style={{ background: "#302020" }}>
+    <div className="h-full overflow-y-auto" style={{ background: "#2D2323" }}>
       <div className="max-w-lg mx-auto px-4 md:px-6 py-6 md:pt-8 pb-28 lg:pb-10">
         {loadError && <p className="text-xs mb-4 px-3 py-2" style={{ color: "#E4A08A", background: "rgba(220,80,80,0.1)", border: "1px solid rgba(220,80,80,0.2)" }}>{loadError}</p>}
         <div className="flex items-center gap-4 mb-8">
@@ -99,7 +99,7 @@ export default function ProfileView({ onAuthRequired }: { onAuthRequired: () => 
             <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone (optional)" className="w-full h-11 px-4 text-sm outline-none" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#fff" }} />
             <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Bio" rows={3} className="w-full px-4 py-3 text-sm outline-none resize-none" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 0 }} />
             <div className="flex gap-3">
-              <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 text-xs font-bold uppercase tracking-[0.16em]" style={{ background: "#fff", color: "#302020", border: "none", cursor: "pointer", opacity: saving ? 0.6 : 1 }}>
+              <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 text-xs font-bold uppercase tracking-[0.16em]" style={{ background: "#fff", color: "#2D2323", border: "none", cursor: "pointer", opacity: saving ? 0.6 : 1 }}>
                 {saving ? "Saving..." : "Save"}
               </button>
               <button onClick={() => setEditing(false)} className="px-4 py-2.5 text-xs font-bold uppercase tracking-[0.16em]" style={{ border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.5)", background: "transparent", cursor: "pointer" }}>

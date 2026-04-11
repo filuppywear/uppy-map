@@ -65,7 +65,7 @@ export default function ReviewForm({ storeId, existingRating, existingComment, o
           type="button"
           onClick={handleSubmit}
           disabled={submitting}
-          style={{ fontSize: "10px", letterSpacing: "0.1em", background: "#fff", color: "#302020", border: "none", padding: "8px 20px", cursor: submitting ? "default" : "pointer", fontWeight: 700, opacity: submitting ? 0.6 : 1 }}
+          style={{ fontSize: "10px", letterSpacing: "0.1em", background: "#fff", color: "#2D2323", border: "none", padding: "8px 20px", cursor: submitting ? "default" : "pointer", fontWeight: 700, opacity: submitting ? 0.6 : 1 }}
         >
           {submitting ? "Saving..." : existingRating ? "Update review" : "Submit review"}
         </button>

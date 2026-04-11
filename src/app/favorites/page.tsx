@@ -34,7 +34,7 @@ export default function FavoritesPage() {
 
   if (loading || !dataReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#302020" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#2D2323" }}>
         <p style={{ color: "rgba(255,255,255,0.5)" }}>Loading...</p>
       </div>
     );
@@ -42,10 +42,10 @@ export default function FavoritesPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6" style={{ background: "#302020" }}>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6" style={{ background: "#2D2323" }}>
         <Image src="/branding/logo-white.svg" alt="Uppy" width={80} height={28} style={{ filter: "brightness(10)" }} />
         <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>Sign in to see your favorites.</p>
-        <Link href="/" className="text-sm font-bold uppercase tracking-wider px-6 py-3" style={{ background: "#fff", color: "#302020", textDecoration: "none" }}>
+        <Link href="/" className="text-sm font-bold uppercase tracking-wider px-6 py-3" style={{ background: "#fff", color: "#2D2323", textDecoration: "none" }}>
           Go to map
         </Link>
       </div>
@@ -53,7 +53,7 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "#302020" }}>
+    <div className="min-h-screen" style={{ background: "#2D2323" }}>
       <PageHeader activePage="map" />
       <div className="max-w-5xl mx-auto p-6 pt-8">
         <h1 className="font-bold uppercase mb-2" style={{ fontSize: "16px", letterSpacing: "0.08em", color: "#fff" }}>
@@ -97,7 +97,7 @@ export default function FavoritesPage() {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/78 via-black/22 to-transparent" />
                 <div className="absolute inset-x-4 top-4 z-10 flex justify-between">
-                  <span className="inline-flex items-center px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ background: "rgba(255,250,244,0.9)", color: "#302020" }}>
+                  <span className="inline-flex items-center px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ background: "rgba(255,250,244,0.9)", color: "#2D2323" }}>
                     {formatCategoryLabel(store.category)}
                   </span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1.5">
