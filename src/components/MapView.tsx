@@ -467,22 +467,33 @@ function MapView({
           // Insert fill layers BELOW map labels so text stays readable
           const firstSymbolId = map.getStyle()?.layers?.find(l => l.type === "symbol")?.id;
 
-          // Insert fill layers BELOW map labels so text stays readable.
-          // NO maxzoom — country fills persist at all zoom levels for visual continuity.
+          // Tint water to match Uppy aesthetic (warm tone instead of cold blue)
+          const waterLayer = map.getStyle()?.layers?.find(l => l.id === "water");
+          if (waterLayer) {
+            map.setPaintProperty("water", "fill-color", "#c8c2b8");
+          }
 
-          // Background fill: ALL countries in warm grey
+          // ── Background fill: ALL countries in neutral warm grey ──
+          // Opacity fades as you zoom in so streets/details become visible
           map.addLayer({
             id: "countries-fill-bg",
             type: "fill",
             source: "country-boundaries",
             "source-layer": "country_boundaries",
             paint: {
-              "fill-color": "#d0ccc6",
-              "fill-opacity": 1,
+              "fill-color": "#d5d0c8",
+              "fill-opacity": [
+                "interpolate", ["linear"], ["zoom"],
+                0, 1,
+                ZOOM_THRESHOLDS[0], 0.95,
+                ZOOM_THRESHOLDS[1], 0.2,
+                10, 0,
+              ],
             },
           }, firstSymbolId);
 
-          // Foreground fill: OUR countries in dark Uppy brown
+          // ── Foreground fill: OUR countries in Uppy dark brown ──
+          // Fades with zoom so map detail shows through at street level
           map.addLayer({
             id: "countries-fill",
             type: "fill",
@@ -493,15 +504,46 @@ function MapView({
               "fill-color": [
                 "case",
                 ["boolean", ["feature-state", "hover"], false],
-                "#614439",
+                "#7a5a4d",
                 "#2D2323",
               ],
-              "fill-opacity": 1,
+              "fill-opacity": [
+                "interpolate", ["linear"], ["zoom"],
+                0, 1,
+                ZOOM_THRESHOLDS[0], 0.92,
+                ZOOM_THRESHOLDS[1], 0.18,
+                10, 0,
+              ],
               "fill-opacity-transition": { duration: 200, delay: 0 },
             },
           }, firstSymbolId);
 
-          // Borders between all countries
+          // ── Hover highlight border: thick cream ring on hovered country ──
+          map.addLayer({
+            id: "countries-line-hover",
+            type: "line",
+            source: "country-boundaries",
+            "source-layer": "country_boundaries",
+            filter: buildCountryFilter(initialCountryStats),
+            paint: {
+              "line-color": "#EBE9D9",
+              "line-opacity": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                0.9,
+                0,
+              ],
+              "line-width": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                2.5,
+                0,
+              ],
+              "line-opacity-transition": { duration: 150, delay: 0 },
+            },
+          }, firstSymbolId);
+
+          // ── Subtle borders between all countries ──
           map.addLayer({
             id: "countries-line",
             type: "line",
@@ -509,13 +551,16 @@ function MapView({
             "source-layer": "country_boundaries",
             paint: {
               "line-color": "#EBE9D9",
-              "line-opacity": 0.25,
+              "line-opacity": [
+                "interpolate", ["linear"], ["zoom"],
+                0, 0.3,
+                ZOOM_THRESHOLDS[0], 0.2,
+                ZOOM_THRESHOLDS[1], 0.06,
+                10, 0,
+              ],
               "line-width": 0.8,
             },
           }, firstSymbolId);
-
-          // Country labels removed — the map's own place names are enough.
-          // Country polygons are clickable via countries-fill.
 
           // --- CITY mega-pin layer (store-derived) ---
           const CITY_MIN_ZOOM = ZOOM_THRESHOLDS[0]; // 3.5
@@ -527,13 +572,13 @@ function MapView({
             data: buildCityHotspotsGeoJSON(initialCityStats),
           });
 
-          // Mega pin at each city centroid — no text labels, just a big pin
+          // Mega pin at each city centroid — overlaps 1 zoom level into pin zone for smooth transition
           map.addLayer({
             id: "city-hotspots-pin",
             type: "symbol",
             source: "city-hotspots",
             minzoom: CITY_MIN_ZOOM,
-            maxzoom: CITY_MAX_ZOOM,
+            maxzoom: CITY_MAX_ZOOM + 1,
             layout: {
               "icon-image": [
                 "match",
@@ -563,7 +608,12 @@ function MapView({
               "icon-ignore-placement": true,
             },
             paint: {
-              "icon-opacity": 1,
+              // Fade out in the overlap zone where individual pins start
+              "icon-opacity": [
+                "interpolate", ["linear"], ["zoom"],
+                CITY_MAX_ZOOM - 0.5, 1,
+                CITY_MAX_ZOOM + 0.5, 0,
+              ],
             },
           });
 
@@ -600,7 +650,12 @@ function MapView({
               "icon-ignore-placement": true,
             },
             paint: {
-              "icon-opacity": 1,
+              // Fade in from overlap zone where mega-pins are fading out
+              "icon-opacity": [
+                "interpolate", ["linear"], ["zoom"],
+                CITY_MAX_ZOOM - 0.5, 0,
+                CITY_MAX_ZOOM + 0.5, 1,
+              ],
             },
           });
 
