@@ -3,6 +3,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { Point } from "geojson";
 import type {
+  FilterSpecification,
   GeoJSONSource,
   Map as MapboxMap,
   MapLayerMouseEvent,
@@ -74,14 +75,86 @@ for (const size of [48, 62, 80]) {
 
 /* ─── 3-level fixed grid clustering ─────────────────── */
 // Zoom thresholds: crossing these swaps the cluster dataset
+// Level 0 (zoom < 3.5) shows CLICKABLE COUNTRY POLYGONS (not grid clusters)
+// Level 1 (3.5–7.5) shows small-grid clusters for cities
+// Level 2 (>= 7.5) shows individual pins
 const ZOOM_THRESHOLDS = [3.5, 7.5] as const;
-// Grid cell sizes in degrees for levels 0 and 1; level 2 = individual pins
+// Grid cell size in degrees for level 1; level 2 = individual pins
 const GRID_SIZES = [8, 0.8] as const;
 
 function getZoomLevel(zoom: number): 0 | 1 | 2 {
   if (zoom < ZOOM_THRESHOLDS[0]) return 0;
   if (zoom < ZOOM_THRESHOLDS[1]) return 1;
   return 2;
+}
+
+/* ─── Country polygon overlay ─────────────────────── */
+// Mapbox country-boundaries-v1 uses `name_en` — align our store data names
+// to Mapbox's spelling for the handful of known mismatches.
+const COUNTRY_ALIASES: Record<string, string> = {
+  "United States": "United States of America",
+  "USA": "United States of America",
+  "US": "United States of America",
+  "Czech Republic": "Czechia",
+  "Macedonia": "North Macedonia",
+  "Swaziland": "Eswatini",
+  "Ivory Coast": "Côte d'Ivoire",
+  "Burma": "Myanmar",
+  "East Timor": "Timor-Leste",
+  "Congo (Kinshasa)": "Democratic Republic of the Congo",
+  "Congo (Brazzaville)": "Republic of the Congo",
+  "Cape Verde": "Cabo Verde",
+};
+
+function toMapboxCountryName(name: string): string {
+  return COUNTRY_ALIASES[name] ?? name;
+}
+
+interface CountryStat {
+  count: number;
+  lng: number;
+  lat: number;
+}
+
+function buildCountryStats(stores: Store[]): Map<string, CountryStat> {
+  const stats = new Map<string, { sumLng: number; sumLat: number; count: number }>();
+  for (const store of stores) {
+    if (!hasStoreCoordinates(store)) continue;
+    if (!store.country) continue;
+    const key = toMapboxCountryName(store.country);
+    const entry = stats.get(key) ?? { sumLng: 0, sumLat: 0, count: 0 };
+    entry.sumLng += store.lng;
+    entry.sumLat += store.lat;
+    entry.count += 1;
+    stats.set(key, entry);
+  }
+  const result = new Map<string, CountryStat>();
+  for (const [key, s] of stats) {
+    result.set(key, { count: s.count, lng: s.sumLng / s.count, lat: s.sumLat / s.count });
+  }
+  return result;
+}
+
+function buildCountryLabelsGeoJSON(stats: Map<string, CountryStat>) {
+  return {
+    type: "FeatureCollection" as const,
+    features: Array.from(stats.entries()).map(([name, s]) => ({
+      type: "Feature" as const,
+      geometry: { type: "Point" as const, coordinates: [s.lng, s.lat] as [number, number] },
+      properties: {
+        name,
+        count: s.count,
+        count_label: s.count >= 1000 ? `${(s.count / 1000).toFixed(1)}k` : String(s.count),
+      },
+    })),
+  };
+}
+
+// Mapbox-expression filter: match feature against the countries we have stores in
+function buildCountryFilter(stats: Map<string, CountryStat>): FilterSpecification {
+  const names = Array.from(stats.keys());
+  if (names.length === 0) return ["==", ["get", "name_en"], "__none__"];
+  return ["in", ["get", "name_en"], ["literal", names]];
 }
 
 function buildGridClusters(stores: Store[], gridDeg: number) {
@@ -228,6 +301,8 @@ function MapView({
   const mapRef = useRef<MapboxMap | null>(null);
   const popupRef = useRef<MapboxPopup | null>(null);
   const vpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countryStatsRef = useRef<Map<string, CountryStat>>(new Map());
+  const hoveredCountryIdRef = useRef<number | string | null>(null);
   const userMarkerRef = useRef<MapboxMarker | null>(null);
   const mapboxRef = useRef<MapboxModule["default"] | null>(null);
   const storesRef = useRef(stores);
@@ -354,13 +429,100 @@ function MapView({
           }
 
           const initialLevel = getZoomLevel(map.getZoom());
+          const emptyFC = { type: "FeatureCollection" as const, features: [] };
           map.addSource("stores", {
             type: "geojson",
             data: initialLevel === 0
-              ? buildGridClusters(storesRef.current, GRID_SIZES[0])
+              ? emptyFC
               : initialLevel === 1
               ? buildGridClusters(storesRef.current, GRID_SIZES[1])
               : buildGeoJSON(storesRef.current),
+          });
+
+          // --- Country polygon layer (level 0 only) ---
+          const initialCountryStats = buildCountryStats(storesRef.current);
+          countryStatsRef.current = initialCountryStats;
+
+          map.addSource("country-boundaries", {
+            type: "vector",
+            url: "mapbox://mapbox.country-boundaries-v1",
+            promoteId: { country_boundaries: "iso_3166_1" },
+          });
+
+          map.addSource("country-labels", {
+            type: "geojson",
+            data: buildCountryLabelsGeoJSON(initialCountryStats),
+          });
+
+          const COUNTRY_MAX_ZOOM = ZOOM_THRESHOLDS[0];
+
+          map.addLayer({
+            id: "countries-fill",
+            type: "fill",
+            source: "country-boundaries",
+            "source-layer": "country_boundaries",
+            maxzoom: COUNTRY_MAX_ZOOM,
+            filter: buildCountryFilter(initialCountryStats),
+            paint: {
+              "fill-color": "#A58277",
+              "fill-opacity": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                0.35,
+                0.18,
+              ],
+              "fill-opacity-transition": { duration: 150, delay: 0 },
+            },
+          });
+
+          map.addLayer({
+            id: "countries-line",
+            type: "line",
+            source: "country-boundaries",
+            "source-layer": "country_boundaries",
+            maxzoom: COUNTRY_MAX_ZOOM,
+            filter: buildCountryFilter(initialCountryStats),
+            paint: {
+              "line-color": "#EBE9D9",
+              "line-opacity": 0.35,
+              "line-width": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                2,
+                1,
+              ],
+              "line-width-transition": { duration: 150, delay: 0 },
+            },
+          });
+
+          map.addLayer({
+            id: "countries-label",
+            type: "symbol",
+            source: "country-labels",
+            maxzoom: COUNTRY_MAX_ZOOM,
+            layout: {
+              "text-field": ["format",
+                ["upcase", ["get", "name"]], { "font-scale": 1 },
+                "\n", {},
+                ["get", "count_label"], { "font-scale": 0.75 },
+              ],
+              "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+              "text-size": [
+                "interpolate", ["linear"], ["get", "count"],
+                1, 11,
+                50, 13,
+                500, 16,
+                2000, 19,
+              ],
+              "text-allow-overlap": false,
+              "text-ignore-placement": false,
+              "text-padding": 8,
+            },
+            paint: {
+              "text-color": "#FFFFFF",
+              "text-halo-color": "rgba(45, 35, 35, 0.85)",
+              "text-halo-width": 1.4,
+            },
           });
 
           // --- Cluster layers (normal + hover) ---
@@ -574,6 +736,25 @@ function MapView({
           map.on("click", "clusters-hit-area", handleClusterClick);
           map.on("click", "clusters", handleClusterClick);
 
+          // --- Country polygon click: fly into that country ---
+          const handleCountryClick = (event: MapLayerMouseEvent) => {
+            const feature = event.features?.[0];
+            if (!feature) return;
+            // countries-fill layer exposes `name_en`; our label layer exposes `name`
+            const props = feature.properties ?? {};
+            const name = (props.name_en as string | undefined) ?? (props.name as string | undefined);
+            if (!name) return;
+            const stats = countryStatsRef.current.get(name);
+            if (!stats) return;
+            popupRef.current?.remove();
+            // Fly just past the level 0 -> level 1 threshold so pins/clusters take over
+            const targetZoom = ZOOM_THRESHOLDS[0] + 1.5;
+            map.flyTo({ center: [stats.lng, stats.lat], zoom: targetZoom, speed: 1.4, essential: true });
+          };
+
+          map.on("click", "countries-fill", handleCountryClick);
+          map.on("click", "countries-label", handleCountryClick);
+
           let lastPinClickTime = 0;
           const handlePinClick = (event: MapLayerMouseEvent) => {
             // Debounce: both stores-hit-area and stores-pins fire for the same click
@@ -655,6 +836,36 @@ function MapView({
             map.on("mouseleave", "clusters-hit-area", handleClusterLeave);
             map.on("mouseenter", "clusters", handleClusterEnter);
             map.on("mouseleave", "clusters", handleClusterLeave);
+
+            // Country hover (fill opacity bump via feature-state)
+            const clearCountryHover = () => {
+              if (hoveredCountryIdRef.current != null) {
+                map.setFeatureState(
+                  { source: "country-boundaries", sourceLayer: "country_boundaries", id: hoveredCountryIdRef.current },
+                  { hover: false }
+                );
+                hoveredCountryIdRef.current = null;
+              }
+            };
+            const handleCountryEnter = (e: MapLayerMouseEvent) => {
+              if (isInteracting) return;
+              setCursor("pointer");
+              const feature = e.features?.[0];
+              if (!feature || feature.id == null) return;
+              if (hoveredCountryIdRef.current === feature.id) return;
+              clearCountryHover();
+              hoveredCountryIdRef.current = feature.id;
+              map.setFeatureState(
+                { source: "country-boundaries", sourceLayer: "country_boundaries", id: feature.id },
+                { hover: true }
+              );
+            };
+            const handleCountryLeave = () => {
+              setCursor("");
+              clearCountryHover();
+            };
+            map.on("mousemove", "countries-fill", handleCountryEnter);
+            map.on("mouseleave", "countries-fill", handleCountryLeave);
           }
         };
 
@@ -667,13 +878,15 @@ function MapView({
 
           // Swap cluster dataset when crossing zoom thresholds — fires every frame during animation
           let activeLevel: 0 | 1 | 2 = getZoomLevel(map.getZoom());
+          const emptyCollection = { type: "FeatureCollection" as const, features: [] };
           map.on("zoom", () => {
             const newLevel = getZoomLevel(map.getZoom());
             if (newLevel === activeLevel) return;
             activeLevel = newLevel;
             const src = map.getSource("stores") as GeoJSONSource | undefined;
             if (!src) return;
-            if (newLevel === 0) src.setData(buildGridClusters(storesRef.current, GRID_SIZES[0]));
+            // Level 0: countries take over, leave stores source empty
+            if (newLevel === 0) src.setData(emptyCollection);
             else if (newLevel === 1) src.setData(buildGridClusters(storesRef.current, GRID_SIZES[1]));
             else src.setData(buildGeoJSON(storesRef.current));
           });
@@ -714,10 +927,22 @@ function MapView({
     const map = mapRef.current;
     if (!map) return;
     popupRef.current?.remove();
+
+    // Rebuild country stats so filter changes reflect in the level-0 overlay
+    const newStats = buildCountryStats(stores);
+    countryStatsRef.current = newStats;
+
+    const labelSource = map.getSource("country-labels") as GeoJSONSource | undefined;
+    labelSource?.setData(buildCountryLabelsGeoJSON(newStats));
+
+    const countryFilter = buildCountryFilter(newStats);
+    if (map.getLayer("countries-fill")) map.setFilter("countries-fill", countryFilter);
+    if (map.getLayer("countries-line")) map.setFilter("countries-line", countryFilter);
+
     const source = map.getSource("stores") as GeoJSONSource | undefined;
     if (!source) return;
     const level = getZoomLevel(map.getZoom());
-    if (level === 0) source.setData(buildGridClusters(stores, GRID_SIZES[0]));
+    if (level === 0) source.setData({ type: "FeatureCollection", features: [] });
     else if (level === 1) source.setData(buildGridClusters(stores, GRID_SIZES[1]));
     else source.setData(buildGeoJSON(stores));
   }, [stores]);
