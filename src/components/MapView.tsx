@@ -485,15 +485,15 @@ function MapView({
               "fill-opacity": [
                 "interpolate", ["linear"], ["zoom"],
                 0, 1,
-                ZOOM_THRESHOLDS[0], 0.95,
-                ZOOM_THRESHOLDS[1], 0.2,
-                10, 0,
+                ZOOM_THRESHOLDS[0], 0.7,
+                ZOOM_THRESHOLDS[0] + 1.5, 0.25,
+                ZOOM_THRESHOLDS[1], 0,
               ],
             },
           }, firstSymbolId);
 
           // ── Foreground fill: OUR countries in Uppy dark brown ──
-          // Fades with zoom so map detail shows through at street level
+          // Fades faster so city mega-pins are clearly visible
           map.addLayer({
             id: "countries-fill",
             type: "fill",
@@ -510,9 +510,9 @@ function MapView({
               "fill-opacity": [
                 "interpolate", ["linear"], ["zoom"],
                 0, 1,
-                ZOOM_THRESHOLDS[0], 0.92,
-                ZOOM_THRESHOLDS[1], 0.18,
-                10, 0,
+                ZOOM_THRESHOLDS[0], 0.7,
+                ZOOM_THRESHOLDS[0] + 1.5, 0.2,
+                ZOOM_THRESHOLDS[1], 0,
               ],
               "fill-opacity-transition": { duration: 200, delay: 0 },
             },
@@ -570,6 +570,38 @@ function MapView({
           map.addSource("city-hotspots", {
             type: "geojson",
             data: buildCityHotspotsGeoJSON(initialCityStats),
+          });
+
+          // White halo circle behind each mega-pin so it pops on dark country fills
+          map.addLayer({
+            id: "city-hotspots-halo",
+            type: "circle",
+            source: "city-hotspots",
+            minzoom: CITY_MIN_ZOOM,
+            maxzoom: CITY_MAX_ZOOM + 1,
+            paint: {
+              "circle-radius": ["*",
+                ["interpolate", ["linear"], ["zoom"],
+                  CITY_MIN_ZOOM, 8,
+                  CITY_MIN_ZOOM + 1.5, 14,
+                  CITY_MAX_ZOOM, 20,
+                ],
+                ["interpolate", ["linear"], ["get", "count"],
+                  1, 1,
+                  50, 1.2,
+                  500, 1.4,
+                  2000, 1.6,
+                ],
+              ],
+              "circle-color": "#FFFFFF",
+              "circle-opacity": [
+                "interpolate", ["linear"], ["zoom"],
+                CITY_MIN_ZOOM, 0.85,
+                CITY_MAX_ZOOM - 0.5, 0.85,
+                CITY_MAX_ZOOM + 0.5, 0,
+              ],
+              "circle-blur": 0.3,
+            },
           });
 
           // Mega pin at each city centroid — overlaps 1 zoom level into pin zone for smooth transition
