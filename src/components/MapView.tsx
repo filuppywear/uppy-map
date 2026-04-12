@@ -11,6 +11,7 @@ import type {
   Popup as MapboxPopup,
 } from "mapbox-gl";
 import { formatCategoryLabel, hasStoreCoordinates, type Store } from "@/lib/types";
+import { CONTINENT_CENTERS } from "@/lib/geo";
 
 type MapboxModule = typeof import("mapbox-gl");
 
@@ -73,18 +74,16 @@ for (const size of [48, 62, 80]) {
   getBlobImage("/branding/cluster-dx.svg", size);
 }
 
-/* ─── 4-level semantic zoom ─────────────────────────── */
-// Level 0 (zoom < 3.5)        → clickable COUNTRY polygons
-// Level 1 (zoom 3.5 – 5.5)   → clickable REGION polygons (Natural Earth ADM1, lazy loaded)
-// Level 2 (zoom 5.5 – 7.5)   → clickable CITY hotspots (labels at store centroids)
-// Level 3 (zoom >= 7.5)       → individual store pins
-const ZOOM_THRESHOLDS = [3.5, 5.5, 7.5] as const;
+/* ─── 3-level semantic zoom ─────────────────────────── */
+// Level 0 (zoom < 3.5)  → continent labels + clickable COUNTRY polygons
+// Level 1 (3.5 – 7.5)   → clickable CITY mega-pins (store centroids)
+// Level 2 (>= 7.5)      → individual store pins
+const ZOOM_THRESHOLDS = [3.5, 7.5] as const;
 
-function getZoomLevel(zoom: number): 0 | 1 | 2 | 3 {
+function getZoomLevel(zoom: number): 0 | 1 | 2 {
   if (zoom < ZOOM_THRESHOLDS[0]) return 0;
   if (zoom < ZOOM_THRESHOLDS[1]) return 1;
-  if (zoom < ZOOM_THRESHOLDS[2]) return 2;
-  return 3;
+  return 2;
 }
 
 /* ─── Country polygon overlay ─────────────────────── */
@@ -317,9 +316,6 @@ function MapView({
   const vpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countryStatsRef = useRef<Map<string, CountryStat>>(new Map());
   const hoveredCountryIdRef = useRef<number | string | null>(null);
-  const regionsLoadingRef = useRef(false);
-  const regionsLoadedRef = useRef(false);
-  const hoveredRegionIdRef = useRef<number | string | null>(null);
   const userMarkerRef = useRef<MapboxMarker | null>(null);
   const mapboxRef = useRef<MapboxModule["default"] | null>(null);
   const storesRef = useRef(stores);
@@ -449,7 +445,7 @@ function MapView({
           const emptyFC = { type: "FeatureCollection" as const, features: [] };
           map.addSource("stores", {
             type: "geojson",
-            data: initialLevel === 3 ? buildGeoJSON(storesRef.current) : emptyFC,
+            data: initialLevel === 2 ? buildGeoJSON(storesRef.current) : emptyFC,
           });
 
           // --- Country polygon layer (level 0 only) ---
@@ -469,6 +465,38 @@ function MapView({
 
           const COUNTRY_MAX_ZOOM = ZOOM_THRESHOLDS[0];
 
+          // --- Continent labels (visible at lowest zoom, clickable) ---
+          const continentFeatures = Object.entries(CONTINENT_CENTERS).map(([name, c]) => ({
+            type: "Feature" as const,
+            geometry: { type: "Point" as const, coordinates: [c.lng, c.lat] as [number, number] },
+            properties: { name },
+          }));
+
+          map.addSource("continent-labels", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: continentFeatures },
+          });
+
+          map.addLayer({
+            id: "continent-labels",
+            type: "symbol",
+            source: "continent-labels",
+            maxzoom: COUNTRY_MAX_ZOOM,
+            layout: {
+              "text-field": ["upcase", ["get", "name"]],
+              "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+              "text-size": 16,
+              "text-letter-spacing": 0.2,
+              "text-allow-overlap": true,
+              "text-ignore-placement": true,
+            },
+            paint: {
+              "text-color": "rgba(255,255,255,0.55)",
+              "text-halo-color": "rgba(45, 35, 35, 0.7)",
+              "text-halo-width": 1.5,
+            },
+          });
+
           map.addLayer({
             id: "countries-fill",
             type: "fill",
@@ -477,14 +505,14 @@ function MapView({
             maxzoom: COUNTRY_MAX_ZOOM,
             filter: buildCountryFilter(initialCountryStats),
             paint: {
-              "fill-color": "#A58277",
+              "fill-color": "#614439",
               "fill-opacity": [
                 "case",
                 ["boolean", ["feature-state", "hover"], false],
                 0.35,
-                0.18,
+                0,
               ],
-              "fill-opacity-transition": { duration: 150, delay: 0 },
+              "fill-opacity-transition": { duration: 200, delay: 0 },
             },
           });
 
@@ -496,15 +524,20 @@ function MapView({
             maxzoom: COUNTRY_MAX_ZOOM,
             filter: buildCountryFilter(initialCountryStats),
             paint: {
-              "line-color": "#EBE9D9",
-              "line-opacity": 0.35,
+              "line-color": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                "#EBE9D9",
+                "rgba(235, 233, 217, 0)",
+              ],
+              "line-opacity": 1,
               "line-width": [
                 "case",
                 ["boolean", ["feature-state", "hover"], false],
                 2,
-                1,
+                0,
               ],
-              "line-width-transition": { duration: 150, delay: 0 },
+              "line-width-transition": { duration: 200, delay: 0 },
             },
           });
 
@@ -538,83 +571,9 @@ function MapView({
             },
           });
 
-          // --- REGION layer (ADM1 polygons, lazy-loaded) ---
-          const REGION_MIN_ZOOM = ZOOM_THRESHOLDS[0]; // 3.5
-          const REGION_MAX_ZOOM = ZOOM_THRESHOLDS[1]; // 5.5
-
-          map.addSource("regions", {
-            type: "geojson",
-            data: { type: "FeatureCollection", features: [] },
-            promoteId: "id",
-          });
-
-          map.addLayer({
-            id: "regions-fill",
-            type: "fill",
-            source: "regions",
-            minzoom: REGION_MIN_ZOOM,
-            maxzoom: REGION_MAX_ZOOM,
-            paint: {
-              "fill-color": "#614439",
-              "fill-opacity": [
-                "case",
-                ["boolean", ["feature-state", "hover"], false],
-                0.35,
-                0,
-              ],
-              "fill-opacity-transition": { duration: 200, delay: 0 },
-            },
-          });
-
-          map.addLayer({
-            id: "regions-line",
-            type: "line",
-            source: "regions",
-            minzoom: REGION_MIN_ZOOM,
-            maxzoom: REGION_MAX_ZOOM,
-            paint: {
-              "line-color": [
-                "case",
-                ["boolean", ["feature-state", "hover"], false],
-                "#EBE9D9",
-                "rgba(235, 233, 217, 0.12)",
-              ],
-              "line-opacity": 1,
-              "line-width": [
-                "case",
-                ["boolean", ["feature-state", "hover"], false],
-                2,
-                0.8,
-              ],
-              "line-width-transition": { duration: 200, delay: 0 },
-            },
-          });
-
-          map.addLayer({
-            id: "regions-label",
-            type: "symbol",
-            source: "regions",
-            minzoom: REGION_MIN_ZOOM,
-            maxzoom: REGION_MAX_ZOOM,
-            layout: {
-              "text-field": ["upcase", ["coalesce", ["get", "n"], ["get", "name"], ""]],
-              "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
-              "text-size": 12,
-              "text-allow-overlap": false,
-              "text-ignore-placement": false,
-              "text-padding": 6,
-              "symbol-placement": "point",
-            },
-            paint: {
-              "text-color": "#FFFFFF",
-              "text-halo-color": "rgba(45, 35, 35, 0.85)",
-              "text-halo-width": 1.2,
-            },
-          });
-
-          // --- CITY hotspot layer (store-derived labels) ---
-          const CITY_MIN_ZOOM = ZOOM_THRESHOLDS[1]; // 5.5
-          const CITY_MAX_ZOOM = ZOOM_THRESHOLDS[2]; // 7.5
+          // --- CITY mega-pin layer (store-derived) ---
+          const CITY_MIN_ZOOM = ZOOM_THRESHOLDS[0]; // 3.5
+          const CITY_MAX_ZOOM = ZOOM_THRESHOLDS[1]; // 7.5
 
           const initialCityStats = buildCityStats(storesRef.current);
           map.addSource("city-hotspots", {
@@ -796,7 +755,20 @@ function MapView({
             });
           };
 
-          // --- Country polygon click: fly into that country → region view ---
+          // --- Continent label click: fly to continent center ---
+          const handleContinentClick = (event: MapLayerMouseEvent) => {
+            const feature = event.features?.[0];
+            if (!feature) return;
+            const name = feature.properties?.name as string | undefined;
+            if (!name || !CONTINENT_CENTERS[name]) return;
+            const c = CONTINENT_CENTERS[name];
+            popupRef.current?.remove();
+            map.flyTo({ center: [c.lng, c.lat], zoom: c.zoom, speed: 1.4, essential: true });
+          };
+
+          map.on("click", "continent-labels", handleContinentClick);
+
+          // --- Country polygon click: fly into that country → city mega-pins ---
           const handleCountryClick = (event: MapLayerMouseEvent) => {
             const feature = event.features?.[0];
             if (!feature) return;
@@ -807,48 +779,13 @@ function MapView({
             const stats = countryStatsRef.current.get(name);
             if (!stats) return;
             popupRef.current?.remove();
-            // Fly just past country → region threshold so ADM1 regions take over
-            const targetZoom = ZOOM_THRESHOLDS[0] + 0.5;
+            // Fly past country → city threshold so mega pins take over
+            const targetZoom = ZOOM_THRESHOLDS[0] + 1;
             map.flyTo({ center: [stats.lng, stats.lat], zoom: targetZoom, speed: 1.4, essential: true });
           };
 
           map.on("click", "countries-fill", handleCountryClick);
           map.on("click", "countries-label", handleCountryClick);
-
-          // --- Region polygon click: fly to centroid of the region ---
-          const handleRegionClick = (event: MapLayerMouseEvent) => {
-            const feature = event.features?.[0];
-            if (!feature) return;
-            // Compute centroid from the polygon bbox (good enough for flyTo target)
-            const geom = feature.geometry;
-            if (!geom) return;
-            let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
-            const visitRing = (ring: number[][]) => {
-              for (const [x, y] of ring) {
-                if (x < minLng) minLng = x;
-                if (x > maxLng) maxLng = x;
-                if (y < minLat) minLat = y;
-                if (y > maxLat) maxLat = y;
-              }
-            };
-            if (geom.type === "Polygon") {
-              visitRing((geom as unknown as { coordinates: number[][][] }).coordinates[0]);
-            } else if (geom.type === "MultiPolygon") {
-              for (const poly of (geom as unknown as { coordinates: number[][][][] }).coordinates) {
-                visitRing(poly[0]);
-              }
-            } else {
-              return;
-            }
-            const centerLng = (minLng + maxLng) / 2;
-            const centerLat = (minLat + maxLat) / 2;
-            popupRef.current?.remove();
-            // Fly just past region → city threshold so city hotspots take over
-            map.flyTo({ center: [centerLng, centerLat], zoom: ZOOM_THRESHOLDS[1] + 0.5, speed: 1.4, essential: true });
-          };
-
-          map.on("click", "regions-fill", handleRegionClick);
-          map.on("click", "regions-label", handleRegionClick);
 
           // --- City mega-pin click: fly to city → show individual pins ---
           const handleCityClick = (event: MapLayerMouseEvent) => {
@@ -953,33 +890,6 @@ function MapView({
             map.on("mousemove", "countries-fill", handleCountryEnter);
             map.on("mouseleave", "countries-fill", handleCountryLeave);
 
-            // Region hover (fill opacity bump)
-            const clearRegionHover = () => {
-              if (hoveredRegionIdRef.current != null) {
-                map.setFeatureState(
-                  { source: "regions", id: hoveredRegionIdRef.current },
-                  { hover: false }
-                );
-                hoveredRegionIdRef.current = null;
-              }
-            };
-            const handleRegionEnter = (e: MapLayerMouseEvent) => {
-              if (isInteracting) return;
-              setCursor("pointer");
-              const feature = e.features?.[0];
-              if (!feature || feature.id == null) return;
-              if (hoveredRegionIdRef.current === feature.id) return;
-              clearRegionHover();
-              hoveredRegionIdRef.current = feature.id;
-              map.setFeatureState({ source: "regions", id: feature.id }, { hover: true });
-            };
-            const handleRegionLeave = () => {
-              setCursor("");
-              clearRegionHover();
-            };
-            map.on("mousemove", "regions-fill", handleRegionEnter);
-            map.on("mouseleave", "regions-fill", handleRegionLeave);
-
             // City mega-pin hover: cursor pointer
             const handleCityEnter = () => { if (!isInteracting) setCursor("pointer"); };
             const handleCityLeave = () => setCursor("");
@@ -999,38 +909,15 @@ function MapView({
           let activeLevel: 0 | 1 | 2 | 3 = getZoomLevel(map.getZoom());
           const emptyCollection = { type: "FeatureCollection" as const, features: [] };
 
-          // Trigger region data load on first entry into level 1
-          const ensureRegionsLoaded = () => {
-            if (regionsLoadedRef.current || regionsLoadingRef.current) return;
-            regionsLoadingRef.current = true;
-            fetch("/data/regions.json")
-              .then((r) => r.json())
-              .then((data) => {
-                regionsLoadedRef.current = true;
-                regionsLoadingRef.current = false;
-                const src = map.getSource("regions") as GeoJSONSource | undefined;
-                src?.setData(data);
-              })
-              .catch((err) => {
-                regionsLoadingRef.current = false;
-                console.error("Failed to load regions:", err);
-              });
-          };
-
-          if (activeLevel === 1) ensureRegionsLoaded();
-
           map.on("zoom", () => {
             const newLevel = getZoomLevel(map.getZoom());
             if (newLevel === activeLevel) return;
             activeLevel = newLevel;
 
-            // Lazy-load regions the first time we need them
-            if (newLevel === 1) ensureRegionsLoaded();
-
-            // Stores source: only populated at level 3 (individual pins)
+            // Stores source: only populated at level 2 (individual pins)
             const src = map.getSource("stores") as GeoJSONSource | undefined;
             if (!src) return;
-            if (newLevel === 3) src.setData(buildGeoJSON(storesRef.current));
+            if (newLevel === 2) src.setData(buildGeoJSON(storesRef.current));
             else src.setData(emptyCollection);
           });
 
@@ -1090,7 +977,7 @@ function MapView({
     const source = map.getSource("stores") as GeoJSONSource | undefined;
     if (!source) return;
     const level = getZoomLevel(map.getZoom());
-    if (level === 3) source.setData(buildGeoJSON(stores));
+    if (level === 2) source.setData(buildGeoJSON(stores));
     else source.setData({ type: "FeatureCollection", features: [] });
   }, [stores]);
 
