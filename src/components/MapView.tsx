@@ -555,14 +555,14 @@ function MapView({
             minzoom: REGION_MIN_ZOOM,
             maxzoom: REGION_MAX_ZOOM,
             paint: {
-              "fill-color": "#A58277",
+              "fill-color": "#614439",
               "fill-opacity": [
                 "case",
                 ["boolean", ["feature-state", "hover"], false],
-                0.32,
-                0.14,
+                0.35,
+                0,
               ],
-              "fill-opacity-transition": { duration: 150, delay: 0 },
+              "fill-opacity-transition": { duration: 200, delay: 0 },
             },
           });
 
@@ -573,15 +573,20 @@ function MapView({
             minzoom: REGION_MIN_ZOOM,
             maxzoom: REGION_MAX_ZOOM,
             paint: {
-              "line-color": "#EBE9D9",
-              "line-opacity": 0.3,
+              "line-color": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                "#EBE9D9",
+                "rgba(235, 233, 217, 0.12)",
+              ],
+              "line-opacity": 1,
               "line-width": [
                 "case",
                 ["boolean", ["feature-state", "hover"], false],
                 2,
-                1,
+                0.8,
               ],
-              "line-width-transition": { duration: 150, delay: 0 },
+              "line-width-transition": { duration: 200, delay: 0 },
             },
           });
 
@@ -617,56 +622,60 @@ function MapView({
             data: buildCityHotspotsGeoJSON(initialCityStats),
           });
 
+          // Mega pin at each city centroid, with name + count as label below
           map.addLayer({
-            id: "city-hotspots-hit",
-            type: "circle",
-            source: "city-hotspots",
-            minzoom: CITY_MIN_ZOOM,
-            maxzoom: CITY_MAX_ZOOM,
-            paint: {
-              "circle-radius": [
-                "interpolate", ["linear"], ["get", "count"],
-                1, 18,
-                50, 26,
-                500, 34,
-                2000, 42,
-              ],
-              "circle-color": "#2D2323",
-              "circle-opacity": 0.72,
-              "circle-stroke-color": "#EBE9D9",
-              "circle-stroke-width": 1,
-              "circle-stroke-opacity": 0.25,
-            },
-          });
-
-          map.addLayer({
-            id: "city-hotspots-label",
+            id: "city-hotspots-pin",
             type: "symbol",
             source: "city-hotspots",
             minzoom: CITY_MIN_ZOOM,
             maxzoom: CITY_MAX_ZOOM,
             layout: {
+              // Hash the city key to pick a deterministic pin variant
+              "icon-image": [
+                "match",
+                ["%", ["get", "count"], 4],
+                0, "pin-0",
+                1, "pin-1",
+                2, "pin-2",
+                3, "pin-3",
+                "pin-0",
+              ],
+              // 2.2× the normal store pin
+              "icon-size": [
+                "interpolate", ["linear"], ["get", "count"],
+                1, 1.8,
+                50, 2.2,
+                500, 2.6,
+                2000, 3.0,
+              ],
+              "icon-anchor": "bottom",
+              "icon-allow-overlap": true,
+              "icon-ignore-placement": true,
+              // Label below the pin
               "text-field": ["format",
                 ["upcase", ["get", "name"]], { "font-scale": 1 },
-                "\n", {},
-                ["get", "count_label"], { "font-scale": 0.8 },
+                "  ·  ", {},
+                ["get", "count_label"], { "font-scale": 0.85 },
               ],
               "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
               "text-size": [
                 "interpolate", ["linear"], ["get", "count"],
-                1, 10,
+                1, 11,
                 50, 12,
-                500, 14,
-                2000, 16,
+                500, 13,
+                2000, 14,
               ],
+              "text-anchor": "top",
+              "text-offset": [0, 0.4],
               "text-allow-overlap": false,
               "text-ignore-placement": false,
               "text-padding": 4,
+              "text-optional": true,
             },
             paint: {
               "text-color": "#FFFFFF",
               "text-halo-color": "rgba(45, 35, 35, 0.9)",
-              "text-halo-width": 1.2,
+              "text-halo-width": 1.4,
             },
           });
 
@@ -841,17 +850,16 @@ function MapView({
           map.on("click", "regions-fill", handleRegionClick);
           map.on("click", "regions-label", handleRegionClick);
 
-          // --- City hotspot click: fly to city, pin view takes over ---
+          // --- City mega-pin click: fly to city → show individual pins ---
           const handleCityClick = (event: MapLayerMouseEvent) => {
             const feature = event.features?.[0];
             if (!feature) return;
             const coords = (feature.geometry as Point).coordinates as [number, number];
             popupRef.current?.remove();
-            map.flyTo({ center: coords, zoom: ZOOM_THRESHOLDS[2] + 1.5, speed: 1.4, essential: true });
+            map.flyTo({ center: coords, zoom: 13, speed: 1.4, essential: true });
           };
 
-          map.on("click", "city-hotspots-hit", handleCityClick);
-          map.on("click", "city-hotspots-label", handleCityClick);
+          map.on("click", "city-hotspots-pin", handleCityClick);
 
           let lastPinClickTime = 0;
           const handlePinClick = (event: MapLayerMouseEvent) => {
@@ -972,13 +980,11 @@ function MapView({
             map.on("mousemove", "regions-fill", handleRegionEnter);
             map.on("mouseleave", "regions-fill", handleRegionLeave);
 
-            // City hotspot hover: just cursor change (circle is already visible)
+            // City mega-pin hover: cursor pointer
             const handleCityEnter = () => { if (!isInteracting) setCursor("pointer"); };
             const handleCityLeave = () => setCursor("");
-            map.on("mouseenter", "city-hotspots-hit", handleCityEnter);
-            map.on("mouseleave", "city-hotspots-hit", handleCityLeave);
-            map.on("mouseenter", "city-hotspots-label", handleCityEnter);
-            map.on("mouseleave", "city-hotspots-label", handleCityLeave);
+            map.on("mouseenter", "city-hotspots-pin", handleCityEnter);
+            map.on("mouseleave", "city-hotspots-pin", handleCityLeave);
           }
         };
 
