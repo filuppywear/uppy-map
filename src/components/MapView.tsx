@@ -458,23 +458,24 @@ function MapView({
             promoteId: { country_boundaries: "iso_3166_1" },
           });
 
+          // country-labels source kept for potential future use
           map.addSource("country-labels", {
             type: "geojson",
             data: buildCountryLabelsGeoJSON(initialCountryStats),
           });
 
-          const COUNTRY_MAX_ZOOM = ZOOM_THRESHOLDS[0];
-
           // Insert fill layers BELOW map labels so text stays readable
           const firstSymbolId = map.getStyle()?.layers?.find(l => l.type === "symbol")?.id;
 
-          // Background fill: ALL countries in grey
+          // Insert fill layers BELOW map labels so text stays readable.
+          // NO maxzoom — country fills persist at all zoom levels for visual continuity.
+
+          // Background fill: ALL countries in warm grey
           map.addLayer({
             id: "countries-fill-bg",
             type: "fill",
             source: "country-boundaries",
             "source-layer": "country_boundaries",
-            maxzoom: COUNTRY_MAX_ZOOM,
             paint: {
               "fill-color": "#d0ccc6",
               "fill-opacity": 1,
@@ -487,7 +488,6 @@ function MapView({
             type: "fill",
             source: "country-boundaries",
             "source-layer": "country_boundaries",
-            maxzoom: COUNTRY_MAX_ZOOM,
             filter: buildCountryFilter(initialCountryStats),
             paint: {
               "fill-color": [
@@ -507,7 +507,6 @@ function MapView({
             type: "line",
             source: "country-boundaries",
             "source-layer": "country_boundaries",
-            maxzoom: COUNTRY_MAX_ZOOM,
             paint: {
               "line-color": "#EBE9D9",
               "line-opacity": 0.25,
@@ -545,11 +544,11 @@ function MapView({
                 3, "pin-3",
                 "pin-0",
               ],
-              // Grow from size 0 at min zoom to full size at max zoom
+              // Grow from tiny at min zoom to full size at max zoom
               "icon-size": ["*",
                 ["interpolate", ["linear"], ["zoom"],
-                  CITY_MIN_ZOOM, 0,
-                  CITY_MIN_ZOOM + 0.5, 0.4,
+                  CITY_MIN_ZOOM, 0.15,
+                  CITY_MIN_ZOOM + 1, 0.5,
                   CITY_MAX_ZOOM, 1,
                 ],
                 ["interpolate", ["linear"], ["get", "count"],
