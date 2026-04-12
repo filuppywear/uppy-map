@@ -472,29 +472,10 @@ function MapView({
             properties: { name },
           }));
 
+          // Continent source kept for click interaction (no visible labels)
           map.addSource("continent-labels", {
             type: "geojson",
             data: { type: "FeatureCollection", features: continentFeatures },
-          });
-
-          map.addLayer({
-            id: "continent-labels",
-            type: "symbol",
-            source: "continent-labels",
-            maxzoom: COUNTRY_MAX_ZOOM,
-            layout: {
-              "text-field": ["upcase", ["get", "name"]],
-              "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
-              "text-size": 16,
-              "text-letter-spacing": 0.2,
-              "text-allow-overlap": true,
-              "text-ignore-placement": true,
-            },
-            paint: {
-              "text-color": "rgba(255,255,255,0.55)",
-              "text-halo-color": "rgba(45, 35, 35, 0.7)",
-              "text-halo-width": 1.5,
-            },
           });
 
           map.addLayer({
@@ -510,7 +491,7 @@ function MapView({
                 "case",
                 ["boolean", ["feature-state", "hover"], false],
                 0.35,
-                0,
+                0.08,
               ],
               "fill-opacity-transition": { duration: 200, delay: 0 },
             },
@@ -524,52 +505,25 @@ function MapView({
             maxzoom: COUNTRY_MAX_ZOOM,
             filter: buildCountryFilter(initialCountryStats),
             paint: {
-              "line-color": [
+              "line-color": "#614439",
+              "line-opacity": [
                 "case",
                 ["boolean", ["feature-state", "hover"], false],
-                "#EBE9D9",
-                "rgba(235, 233, 217, 0)",
+                0.6,
+                0.12,
               ],
-              "line-opacity": 1,
               "line-width": [
                 "case",
                 ["boolean", ["feature-state", "hover"], false],
                 2,
-                0,
+                1,
               ],
               "line-width-transition": { duration: 200, delay: 0 },
             },
           });
 
-          map.addLayer({
-            id: "countries-label",
-            type: "symbol",
-            source: "country-labels",
-            maxzoom: COUNTRY_MAX_ZOOM,
-            layout: {
-              "text-field": ["format",
-                ["upcase", ["get", "name"]], { "font-scale": 1 },
-                "\n", {},
-                ["get", "count_label"], { "font-scale": 0.75 },
-              ],
-              "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
-              "text-size": [
-                "interpolate", ["linear"], ["get", "count"],
-                1, 11,
-                50, 13,
-                500, 16,
-                2000, 19,
-              ],
-              "text-allow-overlap": false,
-              "text-ignore-placement": false,
-              "text-padding": 8,
-            },
-            paint: {
-              "text-color": "#FFFFFF",
-              "text-halo-color": "rgba(45, 35, 35, 0.85)",
-              "text-halo-width": 1.4,
-            },
-          });
+          // Country labels removed — the map's own place names are enough.
+          // Country polygons are clickable via countries-fill.
 
           // --- CITY mega-pin layer (store-derived) ---
           const CITY_MIN_ZOOM = ZOOM_THRESHOLDS[0]; // 3.5
@@ -581,7 +535,7 @@ function MapView({
             data: buildCityHotspotsGeoJSON(initialCityStats),
           });
 
-          // Mega pin at each city centroid, with name + count as label below
+          // Mega pin at each city centroid — no text labels, just a big pin
           map.addLayer({
             id: "city-hotspots-pin",
             type: "symbol",
@@ -589,7 +543,6 @@ function MapView({
             minzoom: CITY_MIN_ZOOM,
             maxzoom: CITY_MAX_ZOOM,
             layout: {
-              // Hash the city key to pick a deterministic pin variant
               "icon-image": [
                 "match",
                 ["%", ["get", "count"], 4],
@@ -599,7 +552,6 @@ function MapView({
                 3, "pin-3",
                 "pin-0",
               ],
-              // 2.2× the normal store pin
               "icon-size": [
                 "interpolate", ["linear"], ["get", "count"],
                 1, 1.8,
@@ -610,31 +562,9 @@ function MapView({
               "icon-anchor": "bottom",
               "icon-allow-overlap": true,
               "icon-ignore-placement": true,
-              // Label below the pin
-              "text-field": ["format",
-                ["upcase", ["get", "name"]], { "font-scale": 1 },
-                "  ·  ", {},
-                ["get", "count_label"], { "font-scale": 0.85 },
-              ],
-              "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
-              "text-size": [
-                "interpolate", ["linear"], ["get", "count"],
-                1, 11,
-                50, 12,
-                500, 13,
-                2000, 14,
-              ],
-              "text-anchor": "top",
-              "text-offset": [0, 0.4],
-              "text-allow-overlap": false,
-              "text-ignore-placement": false,
-              "text-padding": 4,
-              "text-optional": true,
             },
             paint: {
-              "text-color": "#FFFFFF",
-              "text-halo-color": "rgba(45, 35, 35, 0.9)",
-              "text-halo-width": 1.4,
+              "icon-opacity": 1,
             },
           });
 
@@ -766,8 +696,6 @@ function MapView({
             map.flyTo({ center: [c.lng, c.lat], zoom: c.zoom, speed: 1.4, essential: true });
           };
 
-          map.on("click", "continent-labels", handleContinentClick);
-
           // --- Country polygon click: fly into that country → city mega-pins ---
           const handleCountryClick = (event: MapLayerMouseEvent) => {
             const feature = event.features?.[0];
@@ -785,7 +713,6 @@ function MapView({
           };
 
           map.on("click", "countries-fill", handleCountryClick);
-          map.on("click", "countries-label", handleCountryClick);
 
           // --- City mega-pin click: fly to city → show individual pins ---
           const handleCityClick = (event: MapLayerMouseEvent) => {
