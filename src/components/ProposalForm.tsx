@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { submitNewStoreProposal, submitEditProposal, submitRemovalProposal } from "@/actions/proposals";
 import { CATEGORIES } from "@/lib/types";
 import type { Store } from "@/lib/types";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 interface Props {
   mode: "new" | "edit" | "remove";
@@ -24,6 +25,14 @@ export default function ProposalForm({ mode, store, onClose, onSuccess }: Props)
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useBodyScrollLock(true);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const handleSubmit = async () => {
     setSubmitting(true);

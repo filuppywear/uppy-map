@@ -8,6 +8,7 @@ import { isValidEmail, normalizeEmail, persistWaitlistSession, type WaitlistProv
 import { track } from "@/lib/analytics";
 import { DEFAULT_STATS, type DatasetStats } from "@/lib/types";
 import { AnimatedNumber } from "./AnimatedNumber";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 interface Props {
   onComplete: () => void;
@@ -45,7 +46,7 @@ export default function OnboardingWall({ onComplete, stats = DEFAULT_STATS }: Pr
     rememberMeRef.current = rememberMe;
   }, [rememberMe]);
 
-  // Don't block body overflow — let the map render behind the wall
+  useBodyScrollLock(true);
 
   const next = useCallback(() => { setDir("fwd"); setStep(s => Math.min(s + 1, 3) as Step); }, []);
   const back = useCallback(() => { setDir("back"); setStep(s => Math.max(s - 1, 1) as Step); }, []);
@@ -168,12 +169,21 @@ export default function OnboardingWall({ onComplete, stats = DEFAULT_STATS }: Pr
         {/* Top bar */}
         <div className="flex items-center justify-between px-5 py-4">
           {step > 1 ? (
-            <button type="button" onClick={back} className="text-white/40 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ background: "none", border: "none", cursor: "pointer" }}>
+            <button type="button" onClick={back} aria-label="Back" className="text-white/40 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ background: "none", border: "none", cursor: "pointer" }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
           ) : <div className="w-11" />}
           <StepDots current={step} total={3} />
-          <div className="w-11" />
+          <button
+            type="button"
+            onClick={onComplete}
+            aria-label="Skip for now"
+            className="text-white/40 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            style={{ background: "none", border: "none", cursor: "pointer" }}
+            title="Skip for now"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
         </div>
 
         {/* Content */}

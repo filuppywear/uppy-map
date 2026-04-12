@@ -227,6 +227,7 @@ function MapView({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const popupRef = useRef<MapboxPopup | null>(null);
+  const vpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userMarkerRef = useRef<MapboxMarker | null>(null);
   const mapboxRef = useRef<MapboxModule["default"] | null>(null);
   const storesRef = useRef(stores);
@@ -548,10 +549,14 @@ function MapView({
                   popupRef.current = null;
                   onStoreSelectRef.current(store);
                 }
-                popupElement.removeEventListener("click", handlePopupClick);
               };
 
               popupElement.addEventListener("click", handlePopupClick);
+              // Always remove the listener when the popup closes — whether by
+              // button click, close button, closeOnClick, or programmatic remove
+              popup.once("close", () => {
+                popupElement.removeEventListener("click", handlePopupClick);
+              });
             });
           };
 
@@ -673,10 +678,10 @@ function MapView({
             else src.setData(buildGeoJSON(storesRef.current));
           });
 
-          let vpTimer: ReturnType<typeof setTimeout> | null = null;
           const emitViewport = () => {
-            if (vpTimer) clearTimeout(vpTimer);
-            vpTimer = setTimeout(() => {
+            if (vpTimerRef.current) clearTimeout(vpTimerRef.current);
+            vpTimerRef.current = setTimeout(() => {
+              vpTimerRef.current = null;
               const center = map.getCenter();
               onViewportChangeRef.current?.([center.lng, center.lat], map.getZoom());
             }, 300);
@@ -694,6 +699,12 @@ function MapView({
 
     return () => {
       cancelled = true;
+      if (vpTimerRef.current) {
+        clearTimeout(vpTimerRef.current);
+        vpTimerRef.current = null;
+      }
+      popupRef.current?.remove();
+      popupRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
     };

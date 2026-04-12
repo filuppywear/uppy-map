@@ -23,6 +23,7 @@ import { getProfile } from "@/actions/profile";
 import OnboardingWall from "./OnboardingWall";
 import { AnimatedNumber } from "./AnimatedNumber";
 import FeedbackChat from "./FeedbackChat";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false });
 
@@ -199,6 +200,21 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
 
   const closeAll = useCallback(() => { setCatOpen(false); setRatingOpen(false); setSearchOpen(false); setMobileMenuOpen(false); }, []);
 
+  // Lock body scroll while any blocking overlay is open
+  useBodyScrollLock(mobileMenuOpen || marketNotice);
+
+  // Escape closes the mobile menu sheet and market notice
+  useEffect(() => {
+    if (!mobileMenuOpen && !marketNotice) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (marketNotice) setMarketNotice(false);
+      if (mobileMenuOpen) setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileMenuOpen, marketNotice]);
+
   // Typewriter placeholder — paused when user has typed something
   useEffect(() => {
     if (phase !== "app") return;
@@ -314,6 +330,24 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
     };
   }, [currentGeoLevel, effectiveNav, filteredStores]);
 
+  // Fly to the centroid of stores matching `field === value`, or no-op if empty
+  const flyToMatching = useCallback(
+    (source: Store[], field: keyof Store, value: string, zoom: number) => {
+      const matching = source.filter((s) => s[field] === value && hasStoreCoordinates(s));
+      if (!matching.length) return;
+      const lng = matching.reduce((sum, s) => sum + s.lng, 0) / matching.length;
+      const lat = matching.reduce((sum, s) => sum + s.lat, 0) / matching.length;
+      mapFlyTo.current?.(lng, lat, zoom);
+    },
+    []
+  );
+
+  // Reset view to "world" — zoom depends on viewport width
+  const flyToWorld = useCallback(() => {
+    const mob = window.innerWidth < 768;
+    mapFlyTo.current?.(10, 20, mob ? 0.8 : 1.8);
+  }, []);
+
   const handleGeoSelect = useCallback((level: NavLevel, value: string) => {
     viewportLockUntil.current = Date.now() + 5000;
     setMapLocation(prev => {
@@ -325,55 +359,47 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
       const c = CONTINENT_CENTERS[value];
       if (c) mapFlyTo.current?.(c.lng, c.lat, c.zoom);
     } else {
-      const zoom = level === "country" ? 5.5 : 11;
-      const field = level as keyof Store;
-      const matching = filteredStores.filter(s => s[field] === value && hasStoreCoordinates(s));
-      if (matching.length) mapFlyTo.current?.(matching.reduce((s, x) => s + x.lng, 0) / matching.length, matching.reduce((s, x) => s + x.lat, 0) / matching.length, zoom);
+      flyToMatching(filteredStores, level as keyof Store, value, level === "country" ? 5.5 : 11);
     }
-  }, [filteredStores]);
+  }, [filteredStores, flyToMatching]);
 
   const handleGeoNavigateTo = useCallback((index: number) => {
     viewportLockUntil.current = Date.now() + 5000;
     if (index === 0) {
       setMapLocation({});
-      const mob = window.innerWidth < 768;
-      mapFlyTo.current?.(10, 20, mob ? 0.8 : 1.8);
-    } else {
-      setMapLocation(prev => {
-        if (index === 1) return { continent: prev.continent };
-        if (index === 2) return { continent: prev.continent, country: prev.country };
-        return prev;
-      });
-      const target = effectiveNav[index - 1];
-      if (target?.level === "continent") { const c = CONTINENT_CENTERS[target.value]; if (c) mapFlyTo.current?.(c.lng, c.lat, c.zoom); }
-      else if (target?.level === "country" || target?.level === "city") {
-        const zoom = target.level === "country" ? 5.5 : 11;
-        const field = target.level as keyof Store;
-        const matching = filteredStores.filter(s => s[field] === target.value && hasStoreCoordinates(s));
-        if (matching.length) mapFlyTo.current?.(matching.reduce((s, x) => s + x.lng, 0) / matching.length, matching.reduce((s, x) => s + x.lat, 0) / matching.length, zoom);
-      }
+      flyToWorld();
+      return;
     }
-  }, [effectiveNav, filteredStores]);
+    setMapLocation(prev => {
+      if (index === 1) return { continent: prev.continent };
+      if (index === 2) return { continent: prev.continent, country: prev.country };
+      return prev;
+    });
+    const target = effectiveNav[index - 1];
+    if (target?.level === "continent") {
+      const c = CONTINENT_CENTERS[target.value];
+      if (c) mapFlyTo.current?.(c.lng, c.lat, c.zoom);
+    } else if (target?.level === "country" || target?.level === "city") {
+      flyToMatching(filteredStores, target.level as keyof Store, target.value, target.level === "country" ? 5.5 : 11);
+    }
+  }, [effectiveNav, filteredStores, flyToMatching, flyToWorld]);
 
   const handleGoBack = useCallback(() => {
     viewportLockUntil.current = Date.now() + 5000;
     const navLen = effectiveNav.length;
 
-    // Go up one level
     if (navLen <= 1) {
       setMapLocation({});
-      const mob = window.innerWidth < 768;
-      mapFlyTo.current?.(10, 20, mob ? 0.8 : 1.8);
+      flyToWorld();
     } else if (navLen === 2) {
       setMapLocation({ continent: effectiveNav[0].value });
       const c = CONTINENT_CENTERS[effectiveNav[0].value];
       if (c) mapFlyTo.current?.(c.lng, c.lat, c.zoom);
     } else {
       setMapLocation({ continent: effectiveNav[0].value, country: effectiveNav[1].value });
-      const matching = allStores.filter(s => s.country === effectiveNav[1].value && hasStoreCoordinates(s));
-      if (matching.length) mapFlyTo.current?.(matching.reduce((s, x) => s + x.lng, 0) / matching.length, matching.reduce((s, x) => s + x.lat, 0) / matching.length, 5.5);
+      flyToMatching(filteredStores, "country", effectiveNav[1].value, 5.5);
     }
-  }, [effectiveNav, allStores]);
+  }, [effectiveNav, filteredStores, flyToMatching, flyToWorld]);
 
   const handleViewportChange = useCallback((center: [number, number], zoom: number) => {
     if (Date.now() < viewportLockUntil.current) return;
@@ -471,16 +497,14 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
       // Find the continent for this country
       const sample = allStores.find(s => s.country === result.geoValue);
       setMapLocation({ continent: sample?.continent || undefined, country: result.geoValue! });
-      const matching = allStores.filter(s => s.country === result.geoValue && hasStoreCoordinates(s));
-      if (matching.length) mapFlyTo.current?.(matching.reduce((a, s) => a + s.lng, 0) / matching.length, matching.reduce((a, s) => a + s.lat, 0) / matching.length, 5.5);
+      flyToMatching(allStores, "country", result.geoValue, 5.5);
     } else if (result.type === "city" && result.geoValue) {
       // Find continent + country for this city
       const sample = allStores.find(s => s.city === result.geoValue);
       setMapLocation({ continent: sample?.continent || undefined, country: sample?.country || undefined, city: result.geoValue! });
-      const matching = allStores.filter(s => s.city === result.geoValue && hasStoreCoordinates(s));
-      if (matching.length) mapFlyTo.current?.(matching.reduce((a, s) => a + s.lng, 0) / matching.length, matching.reduce((a, s) => a + s.lat, 0) / matching.length, 11);
+      flyToMatching(allStores, "city", result.geoValue, 11);
     }
-  }, [allStores, openStoreDetail]);
+  }, [allStores, openStoreDetail, flyToMatching]);
 
   const handleMapStoreSelect = useCallback((store: Store) => {
     openStoreDetail(store, { syncLocation: false, flyTo: false });

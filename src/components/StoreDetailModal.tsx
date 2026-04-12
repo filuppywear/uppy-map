@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type TouchEvent } from "react";
 import Image from "next/image";
 import { formatCategoryLabel, hasStoreCoordinates, type Store } from "@/lib/types";
 import { getStoreReviews, getMyReview, type Review } from "@/actions/reviews";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import ReviewForm from "./ReviewForm";
 import ProposalForm from "./ProposalForm";
 
@@ -18,6 +19,38 @@ type TabKey = "reviews" | "photos";
 
 function ImageGallery({ images, name }: { images: string[]; name: string }) {
   const [index, setIndex] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const go = (dir: 1 | -1) => {
+    if (images.length <= 1) return;
+    setIndex((i) => {
+      const next = i + dir;
+      if (next < 0) return images.length - 1;
+      if (next >= images.length) return 0;
+      return next;
+    });
+  };
+
+  const onTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    const t = e.touches[0];
+    touchStartX.current = t.clientX;
+    touchStartY.current = t.clientY;
+  };
+
+  const onTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
+    const startX = touchStartX.current;
+    const startY = touchStartY.current;
+    touchStartX.current = null;
+    touchStartY.current = null;
+    if (startX == null || startY == null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    // Only trigger horizontal swipe if it clearly dominates vertical
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    go(dx < 0 ? 1 : -1);
+  };
 
   if (images.length === 0) {
     return (
@@ -33,25 +66,31 @@ function ImageGallery({ images, name }: { images: string[]; name: string }) {
     );
   }
 
+  const hasMany = images.length > 1;
+
   return (
-    <div className="relative aspect-[16/9] overflow-hidden max-h-[35vh] sm:max-h-none" style={{ background: "#d8cfc6" }}>
-      <img src={images[index]} alt={name} className="h-full w-full object-cover" loading="lazy" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/0 to-transparent" />
+    <div
+      className="relative aspect-[16/9] overflow-hidden max-h-[35vh] sm:max-h-none select-none"
+      style={{ background: "#d8cfc6", touchAction: "pan-y" }}
+      onTouchStart={hasMany ? onTouchStart : undefined}
+      onTouchEnd={hasMany ? onTouchEnd : undefined}
+    >
+      <img src={images[index]} alt={name} className="h-full w-full object-cover" loading="eager" draggable={false} />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/0 to-transparent pointer-events-none" />
 
-      {images.length > 1 && (
-        <div
-          className="absolute top-4 right-4 px-3 py-1.5 text-[11px] font-bold"
-          style={{ background: "rgba(36,27,25,0.56)", color: "#fff" }}
-        >
-          {index + 1} / {images.length}
-        </div>
-      )}
-
-      {images.length > 1 && (
+      {hasMany && (
         <>
+          <div
+            className="absolute top-4 right-4 px-3 py-1.5 text-[11px] font-bold"
+            style={{ background: "rgba(36,27,25,0.56)", color: "#fff" }}
+          >
+            {index + 1} / {images.length}
+          </div>
+
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); setIndex(index > 0 ? index - 1 : images.length - 1); }}
+            onClick={(e) => { e.stopPropagation(); go(-1); }}
+            aria-label="Previous image"
             className="absolute left-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center"
             style={{ background: "rgba(36,27,25,0.42)", color: "#fff", border: "none" }}
           >
@@ -59,21 +98,31 @@ function ImageGallery({ images, name }: { images: string[]; name: string }) {
           </button>
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); setIndex(index < images.length - 1 ? index + 1 : 0); }}
+            onClick={(e) => { e.stopPropagation(); go(1); }}
+            aria-label="Next image"
             className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center"
             style={{ background: "rgba(36,27,25,0.42)", color: "#fff", border: "none" }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
           </button>
-        </>
-      )}
 
-      {images.length > 1 && images.length <= 10 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-          {images.map((_, i) => (
-            <button key={i} type="button" onClick={(e) => { e.stopPropagation(); setIndex(i); }} className="w-2.5 h-2.5" style={{ background: i === index ? "#fff" : "rgba(255,255,255,0.42)", border: "none", padding: 0 }} />
-          ))}
-        </div>
+          {images.length <= 10 && (
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setIndex(i); }}
+                  aria-label={`Go to image ${i + 1}`}
+                  className="flex items-center justify-center"
+                  style={{ width: 28, height: 28, background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+                >
+                  <span style={{ display: "block", width: 10, height: 10, background: i === index ? "#fff" : "rgba(255,255,255,0.45)", transition: "background 0.15s" }} />
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -116,10 +165,7 @@ export default function StoreDetailModal({ store, onClose, isSaved = false, onTo
     return () => document.removeEventListener("keydown", handler);
   }, [store, onClose]);
 
-  useEffect(() => {
-    document.body.style.overflow = store ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [store]);
+  useBodyScrollLock(!!store);
 
   if (!store) return null;
 
