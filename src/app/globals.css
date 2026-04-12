@@ -1219,19 +1219,6 @@ p {
   color: #fff !important;
 }
 
-.mini-popup__image {
-  width: 100%;
-  height: 120px;
-  overflow: hidden;
-}
-
-.mini-popup__image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
 .mini-popup__body {
   display: flex;
   flex-direction: column;
@@ -1267,13 +1254,6 @@ p {
   color: rgba(255, 255, 255, 0.55);
   font-size: 0.7rem;
   line-height: 1.45;
-}
-
-.mini-popup__desc {
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 0.7rem;
-  line-height: 1.45;
-  margin-bottom: 12px;
 }
 
 .mini-popup__rating {
@@ -1536,10 +1516,6 @@ p {
   .mini-popup {
     width: calc(100vw - 32px) !important;
     max-width: 320px !important;
-  }
-
-  .mini-popup__image {
-    height: 140px;
   }
 
   .mini-popup__body {

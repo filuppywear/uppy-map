@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent, type TouchEvent } from "react";
-import Image from "next/image";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent, type TouchEvent } from "react";
 import { formatCategoryLabel, hasStoreCoordinates, type Store } from "@/lib/types";
 import { getStoreReviews, getMyReview, type Review } from "@/actions/reviews";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
@@ -17,8 +16,10 @@ interface Props {
 
 type TabKey = "reviews" | "photos";
 
-function ImageGallery({ images, name }: { images: string[]; name: string }) {
+function ImageGallery({ images, name, storeId, onPhotoUploaded }: { images: string[]; name: string; storeId: number; onPhotoUploaded?: (url: string) => void }) {
   const [index, setIndex] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
@@ -52,16 +53,49 @@ function ImageGallery({ images, name }: { images: string[]; name: string }) {
     go(dx < 0 ? 1 : -1);
   };
 
+  const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { uploadStorePhoto } = await import("@/actions/photos");
+      const fd = new FormData();
+      fd.append("photo", file);
+      const result = await uploadStorePhoto(storeId, fd);
+      if (result.url) onPhotoUploaded?.(result.url);
+    } catch {
+      // silent — will show in console
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   if (images.length === 0) {
     return (
       <div
-        className="relative aspect-[16/9] max-h-[35vh] sm:max-h-none flex flex-col items-center justify-center gap-3"
+        className="relative aspect-[16/9] max-h-[35vh] sm:max-h-none flex flex-col items-center justify-center gap-3 cursor-pointer"
         style={{ background: "linear-gradient(135deg, rgba(45,35,35,0.9), rgba(45,35,35,0.5))" }}
+        onClick={() => fileInputRef.current?.click()}
       >
-        <Image src="/branding/logo.svg" alt="" width={72} height={24} style={{ opacity: 0.18 }} />
-        <p className="text-xs font-bold uppercase tracking-[0.12em]" style={{ color: "rgba(255,255,255,0.42)" }}>
-          No images yet
-        </p>
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+        {uploading ? (
+          <div className="w-6 h-6 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
+        ) : (
+          <>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.35, color: "#fff" }}>
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+            <p className="text-xs font-bold uppercase tracking-[0.12em]" style={{ color: "rgba(255,255,255,0.42)" }}>
+              Add a photo
+            </p>
+            <span className="text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-0.5" style={{ color: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.15)" }}>
+              Earn 3 points
+            </span>
+          </>
+        )}
       </div>
     );
   }
@@ -226,7 +260,7 @@ export default function StoreDetailModal({ store, onClose, isSaved = false, onTo
         </div>
 
         {/* Gallery */}
-        <ImageGallery key={store.id} images={store.images} name={store.name} />
+        <ImageGallery key={store.id} images={store.images} name={store.name} storeId={store.id} />
 
         <div className="p-5 lg:p-6" style={{ paddingBottom: "calc(1.25rem + var(--sai-bottom))" }}>
           {/* Category badge */}
