@@ -140,16 +140,34 @@ function buildGeoJSON(stores: Store[]) {
   };
 }
 
+// Escape text for safe HTML interpolation
+function escHtml(v: unknown): string {
+  return String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Allow only http(s) URLs to prevent javascript: injection
+function safeUrl(v: unknown): string {
+  const s = String(v ?? "");
+  if (/^https?:\/\//i.test(s)) return escHtml(s);
+  return "";
+}
+
 function buildPopupHTML(props: Record<string, unknown>) {
-  const name = props.name || "";
-  const category = props.category || "";
-  const city = props.city || "";
-  const country = props.country || "";
+  const name = escHtml(props.name);
+  const category = formatCategoryLabel(String(props.category ?? ""));
+  const city = String(props.city ?? "");
+  const country = String(props.country ?? "");
   const rating = Number(props.rating) || 0;
-  const address = [city, country].filter(Boolean).join(", ");
-  const id = props.id || "";
-  const description = (props.description as string) || "";
-  const image = (props.image as string) || "";
+  const address = escHtml([city, country].filter(Boolean).join(", "));
+  const id = escHtml(props.id);
+  const rawDesc = String(props.description ?? "");
+  const trimmedDesc = rawDesc.length > 60 ? `${rawDesc.slice(0, 60)}...` : rawDesc;
+  const image = safeUrl(props.image);
 
   const imageHtml = image
     ? `<div class="mini-popup__image"><img src="${image}" alt="${name}" /></div>`
@@ -163,16 +181,14 @@ function buildPopupHTML(props: Record<string, unknown>) {
       )}</span></div>`
     : "";
 
-  const descHtml = description
-    ? `<div class="mini-popup__desc">${
-        description.length > 60 ? `${description.slice(0, 60)}...` : description
-      }</div>`
+  const descHtml = trimmedDesc
+    ? `<div class="mini-popup__desc">${escHtml(trimmedDesc)}</div>`
     : "";
 
   return `<div class="mini-popup">
     ${imageHtml}
     <div class="mini-popup__body">
-      <div class="mini-popup__category">${formatCategoryLabel(String(category))}</div>
+      <div class="mini-popup__category">${escHtml(category)}</div>
       <div class="mini-popup__name">${name}</div>
       <div class="mini-popup__address">${address}</div>
       ${starsHtml}

@@ -12,20 +12,35 @@ const RANK_GLOW = [
 ];
 const RANK_COLOR = ["#ffd866", "#b4c8ff", "#dda882"];
 
-export default function LeaderboardView() {
+interface Props {
+  /** Extra content rendered below the arcade screen (e.g. a link back to the map) */
+  footerSlot?: React.ReactNode;
+  /** Override the outer wrapper className — use "min-h-screen ..." on standalone pages */
+  wrapperClassName?: string;
+  /** Override the inner container className — controls padding/max-width */
+  containerClassName?: string;
+}
+
+export default function LeaderboardView({
+  footerSlot,
+  wrapperClassName = "h-full overflow-y-auto arcade-cabinet",
+  containerClassName = "max-w-xl mx-auto px-2 sm:px-4 md:px-6 py-6 pb-28 lg:pb-6",
+}: Props = {}) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     getLeaderboard()
-      .then(setEntries)
+      .then((data) => { if (!cancelled) setEntries(data); })
       .catch((err) => console.error("Leaderboard load failed:", err))
-      .finally(() => setLoading(false));
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   return (
-    <div className="h-full overflow-y-auto arcade-cabinet">
-      <div className="max-w-xl mx-auto px-2 sm:px-4 md:px-6 py-6 pb-28 lg:pb-6">
+    <div className={wrapperClassName}>
+      <div className={containerClassName}>
 
         {/* ── SCREEN ── */}
         <div className="arcade-screen px-4 sm:px-6 md:px-8 py-8 sm:py-10">
@@ -139,6 +154,8 @@ export default function LeaderboardView() {
           </div>
 
         </div>
+
+        {footerSlot}
 
         {/* Credit */}
         <p className="text-center mt-5 arcade-font" style={{ fontSize: "5px", color: "rgba(235,233,217,0.05)", letterSpacing: "0.3em" }}>

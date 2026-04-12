@@ -22,6 +22,7 @@ import ProfileSetup from "./ProfileSetup";
 import { getProfile } from "@/actions/profile";
 import OnboardingWall from "./OnboardingWall";
 import { AnimatedNumber } from "./AnimatedNumber";
+import FeedbackChat from "./FeedbackChat";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false });
 
@@ -198,9 +199,10 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
 
   const closeAll = useCallback(() => { setCatOpen(false); setRatingOpen(false); setSearchOpen(false); setMobileMenuOpen(false); }, []);
 
-  // Typewriter placeholder
+  // Typewriter placeholder — paused when user has typed something
   useEffect(() => {
     if (phase !== "app") return;
+    if (searchQuery.length > 0) return; // pause animation while user is typing
     const phrases = ["Search stores...", "Try \"Tokyo vintage\"", "Try \"Berlin thrift\"", "Try \"Brooklyn flea\""];
     let phraseIdx = 0, charIdx = 0, deleting = false;
     let t: ReturnType<typeof setTimeout>;
@@ -211,7 +213,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
     }
     t = setTimeout(tick, 1000);
     return () => clearTimeout(t);
-  }, [phase]);
+  }, [phase, searchQuery]);
 
   useEffect(() => {
     fetch("/data/stores.json").then(r => r.json()).then((d: StoreRaw[]) => { setAllStores(d.map(expandStore)); setDataReady(true); }).catch((err) => { console.error("Failed to load stores:", err); setDataReady(true); });
@@ -738,9 +740,10 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
 
         {(catOpen || ratingOpen || searchOpen) && <div className="fixed inset-0" style={{ zIndex: 38 }} onClick={closeAll} />}
 
-        {/* ══ CONTENT ══ */}
-        {activeTab === "map" && (
-        <div className="flex-1 relative overflow-hidden">
+        {/* ══ CONTENT ══
+            Tabs stay mounted and are hidden via display:none so map/cards
+            state (zoom, pan, scroll) survives tab switching. */}
+        <div className="flex-1 relative overflow-hidden" style={{ display: activeTab === "map" ? "block" : "none" }}>
           {/* Floating Map/Cards toggle + Back + Add store */}
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
             <button type="button" onClick={handleGoBack} disabled={effectiveNav.length === 0} aria-label="Go back" className="header-btn flex items-center justify-center" style={{ width: "44px", height: "44px", background: "#2D2323", border: "1px solid rgba(97,68,57,0.5)", borderRadius: "50%", color: "rgba(255,255,255,0.85)", cursor: effectiveNav.length > 0 ? "pointer" : "default", opacity: effectiveNav.length > 0 ? 1 : 0, pointerEvents: effectiveNav.length > 0 ? "auto" : "none", transition: "opacity 0.2s" }} title="Go back">
@@ -750,7 +753,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
               {/* Sliding indicator */}
               <div style={{ position: "absolute", top: "3px", left: "3px", width: "calc(50% - 3px)", height: "calc(100% - 6px)", background: "#614439", borderRadius: "999px", transform: view === "map" ? "translateX(0)" : "translateX(100%)", transition: "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)", pointerEvents: "none", willChange: "transform" }} />
               {(["map", "cards"] as const).map(v => (
-                <button key={v} type="button" onClick={() => { setView(v); closeAll(); }} className="relative font-bold uppercase" style={{ fontSize: "10px", letterSpacing: "0.12em", padding: "7px 20px", color: view === v ? "#fff" : "rgba(255,255,255,0.3)", background: "transparent", border: "none", cursor: "pointer", transition: "color 0.2s", zIndex: 1 }}>
+                <button key={v} type="button" onClick={() => { setView(v); closeAll(); }} className="relative font-bold uppercase flex items-center justify-center" style={{ fontSize: "11px", letterSpacing: "0.12em", padding: "0 22px", minHeight: "44px", minWidth: "84px", color: view === v ? "#fff" : "rgba(255,255,255,0.45)", background: "transparent", border: "none", cursor: "pointer", transition: "color 0.2s", zIndex: 1 }}>
                   {v === "map" ? "Map" : "Cards"}
                 </button>
               ))}
@@ -761,30 +764,25 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
           </div>
 
           <div style={{ display: view === "map" ? "block" : "none", height: "100%" }}>
-            <MapView stores={filteredStores} height="100%" visible={view === "map"} interactionLocked={selectedStore !== null} onStoreSelect={handleMapStoreSelect} onReady={handleMapReady} onZoomOut={handleZoomOutToWorld} onViewportChange={handleViewportChange} />
+            <MapView stores={filteredStores} height="100%" visible={activeTab === "map" && view === "map"} interactionLocked={selectedStore !== null} onStoreSelect={handleMapStoreSelect} onReady={handleMapReady} onZoomOut={handleZoomOutToWorld} onViewportChange={handleViewportChange} />
           </div>
-          {view === "cards" && (
+          <div style={{ display: view === "cards" ? "block" : "none", height: "100%" }}>
             <CardsView
               stores={filteredStores}
               navStack={effectiveNav}
               onNavigate={handleGeoSelect}
               onStoreSelect={handleCardStoreSelect}
             />
-          )}
+          </div>
         </div>
-        )}
 
-        {activeTab === "leaderboard" && (
-          <div className="flex-1 relative overflow-hidden">
-            <LeaderboardView />
-          </div>
-        )}
+        <div className="flex-1 relative overflow-hidden" style={{ display: activeTab === "leaderboard" ? "block" : "none" }}>
+          <LeaderboardView />
+        </div>
 
-        {activeTab === "profile" && (
-          <div className="flex-1 relative overflow-hidden">
-            <ProfileView onAuthRequired={() => setShowAuthPopup(true)} />
-          </div>
-        )}
+        <div className="flex-1 relative overflow-hidden" style={{ display: activeTab === "profile" ? "block" : "none" }}>
+          <ProfileView onAuthRequired={() => setShowAuthPopup(true)} />
+        </div>
 
       </div>
 
@@ -832,6 +830,8 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
         activeTab={activeTab}
         onTabChange={(tab) => { setActiveTab(tab); closeAll(); }}
       />
+
+      {phase === "app" && <FeedbackChat />}
     </>
   );
 }
