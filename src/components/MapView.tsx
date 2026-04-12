@@ -72,49 +72,46 @@ for (const size of [48, 62, 80]) {
   getBlobImage("/branding/cluster-dx.svg", size);
 }
 
-/* ─── City hotspots (from store data) ─── */
-interface CityStat {
-  count: number;
-  lng: number;
-  lat: number;
+/* ─── 3-level fixed grid clustering ─────────────────── */
+// Zoom thresholds: crossing these swaps the cluster dataset
+const ZOOM_THRESHOLDS = [3.5, 7.5] as const;
+// Grid cell sizes in degrees for levels 0 and 1; level 2 = individual pins
+const GRID_SIZES = [8, 0.8] as const;
+
+function getZoomLevel(zoom: number): 0 | 1 | 2 {
+  if (zoom < ZOOM_THRESHOLDS[0]) return 0;
+  if (zoom < ZOOM_THRESHOLDS[1]) return 1;
+  return 2;
 }
 
-function buildCityStats(stores: Store[]): Map<string, CityStat> {
-  const stats = new Map<string, { sumLng: number; sumLat: number; count: number }>();
+function buildGridClusters(stores: Store[], gridDeg: number) {
+  const cells = new Map<string, { sumLat: number; sumLng: number; count: number }>();
   for (const store of stores) {
-    if (!hasStoreCoordinates(store) || !store.city) continue;
-    // key must be unique per city — disambiguate same-name cities via country
-    const key = `${store.city}|${store.country ?? ""}`;
-    const entry = stats.get(key) ?? { sumLng: 0, sumLat: 0, count: 0 };
-    entry.sumLng += store.lng;
-    entry.sumLat += store.lat;
-    entry.count += 1;
-    stats.set(key, entry);
+    if (!hasStoreCoordinates(store)) continue;
+    const key = `${Math.floor(store.lat / gridDeg)}|${Math.floor(store.lng / gridDeg)}`;
+    if (!cells.has(key)) cells.set(key, { sumLat: 0, sumLng: 0, count: 0 });
+    const c = cells.get(key)!;
+    c.sumLat += store.lat;
+    c.sumLng += store.lng;
+    c.count++;
   }
-  const result = new Map<string, CityStat>();
-  for (const [key, s] of stats) {
-    result.set(key, { count: s.count, lng: s.sumLng / s.count, lat: s.sumLat / s.count });
+  let id = 0;
+  const features: { type: "Feature"; geometry: { type: "Point"; coordinates: [number, number] }; properties: Record<string, unknown> }[] = [];
+  for (const cell of cells.values()) {
+    const count = cell.count;
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [cell.sumLng / count, cell.sumLat / count] },
+      properties: {
+        cluster: true,
+        id: id,
+        cluster_id: id++,
+        point_count: count,
+        point_count_abbreviated: count >= 1000 ? `${Math.floor(count / 1000)}k` : String(count),
+      },
+    });
   }
-  return result;
-}
-
-function buildCityHotspotsGeoJSON(stats: Map<string, CityStat>) {
-  return {
-    type: "FeatureCollection" as const,
-    features: Array.from(stats.entries()).map(([key, s]) => {
-      const city = key.split("|")[0];
-      return {
-        type: "Feature" as const,
-        geometry: { type: "Point" as const, coordinates: [s.lng, s.lat] as [number, number] },
-        properties: {
-          key,
-          name: city,
-          count: s.count,
-          count_label: s.count >= 1000 ? `${(s.count / 1000).toFixed(1)}k` : String(s.count),
-        },
-      };
-    }),
-  };
+  return { type: "FeatureCollection" as const, features };
 }
 
 function buildGeoJSON(stores: Store[]) {
@@ -153,6 +150,12 @@ function escHtml(v: unknown): string {
     .replace(/'/g, "&#39;");
 }
 
+// Allow only http(s) URLs to prevent javascript: injection
+function safeUrl(v: unknown): string {
+  const s = String(v ?? "");
+  if (/^https?:\/\//i.test(s)) return escHtml(s);
+  return "";
+}
 
 function buildPopupHTML(props: Record<string, unknown>) {
   const name = escHtml(props.name);
@@ -337,75 +340,101 @@ function MapView({
 
           }
 
-          // Always populate stores source
+          const initialLevel = getZoomLevel(map.getZoom());
           map.addSource("stores", {
             type: "geojson",
-            data: buildGeoJSON(storesRef.current),
+            data: initialLevel === 0
+              ? buildGridClusters(storesRef.current, GRID_SIZES[0])
+              : initialLevel === 1
+              ? buildGridClusters(storesRef.current, GRID_SIZES[1])
+              : buildGeoJSON(storesRef.current),
           });
 
-          // Tint water to match Uppy aesthetic (warm tone instead of cold blue)
-          const waterLayer = map.getStyle()?.layers?.find(l => l.id === "water");
-          if (waterLayer) {
-            map.setPaintProperty("water", "fill-color", "#c8c2b8");
-          }
-
-          // --- CITY mega-pin layer (always visible) ---
-
-          const initialCityStats = buildCityStats(storesRef.current);
-          map.addSource("city-hotspots", {
-            type: "geojson",
-            data: buildCityHotspotsGeoJSON(initialCityStats),
-          });
-
-          // Giant city mega-pin — always visible, fades out as you zoom into individual pins
+          // --- Cluster layers (normal + hover) ---
           map.addLayer({
-            id: "city-hotspots-pin",
+            id: "clusters-hit-area",
+            type: "circle",
+            source: "stores",
+            filter: ["has", "point_count"],
+            paint: {
+              "circle-radius": [
+                "step",
+                ["get", "point_count"],
+                20,
+                10,
+                26,
+                50,
+                34,
+              ],
+              "circle-opacity": 0,
+            },
+          });
+
+          map.addLayer({
+            id: "clusters",
             type: "symbol",
-            source: "city-hotspots",
-            maxzoom: 10,
+            source: "stores",
+            filter: ["has", "point_count"],
             layout: {
               "icon-image": [
-                "match",
-                ["%", ["get", "count"], 4],
-                0, "pin-0",
-                1, "pin-1",
-                2, "pin-2",
-                3, "pin-3",
-                "pin-0",
+                "step",
+                ["get", "point_count"],
+                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-48", "blob-dx-48"],
+                10,
+                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-62", "blob-dx-62"],
+                50,
+                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-80", "blob-dx-80"],
               ],
-              "icon-size": ["*",
-                ["interpolate", ["linear"], ["zoom"],
-                  0, 0.4,
-                  3, 0.6,
-                  6, 0.9,
-                  9, 0.5,
-                ],
-                ["interpolate", ["linear"], ["get", "count"],
-                  1, 1.8,
-                  50, 2.2,
-                  500, 2.8,
-                  2000, 3.2,
-                ],
-              ],
-              "icon-anchor": "bottom",
+              "icon-rotate": ["%", ["*", ["get", "cluster_id"], 37], 40],
+              "icon-rotation-alignment": "map",
               "icon-allow-overlap": true,
               "icon-ignore-placement": true,
+              "text-field": ["get", "point_count_abbreviated"],
+              "text-size": 12,
+              "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
             },
             paint: {
-              "icon-opacity": [
-                "interpolate", ["linear"], ["zoom"],
-                7.5, 1,
-                9.5, 0,
-              ],
+              "text-color": "#FFFFFF",
+              "icon-opacity-transition": { duration: 300, delay: 0 },
+              "text-opacity-transition": { duration: 300, delay: 0 },
             },
           });
 
-          // --- Individual store pins — always visible, fade in as you zoom past mega-pins ---
+          // --- Cluster hover layer (slightly bigger on desktop hover) ---
+          map.addLayer({
+            id: "clusters-hover",
+            type: "symbol",
+            source: "stores",
+            filter: ["==", ["get", "cluster_id"], -1],
+            layout: {
+              "icon-image": [
+                "step",
+                ["get", "point_count"],
+                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-48", "blob-dx-48"],
+                10,
+                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-62", "blob-dx-62"],
+                50,
+                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-80", "blob-dx-80"],
+              ],
+              "icon-rotate": ["%", ["*", ["get", "cluster_id"], 37], 40],
+              "icon-rotation-alignment": "map",
+              "icon-allow-overlap": true,
+              "icon-ignore-placement": true,
+              "icon-size": 1.15,
+              "text-field": ["get", "point_count_abbreviated"],
+              "text-size": 13,
+              "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+            },
+            paint: {
+              "text-color": "#FFFFFF",
+            },
+          });
+
+          // --- Pin layer (4 variants, random per store) ---
           map.addLayer({
             id: "stores-hit-area",
             type: "circle",
             source: "stores",
-            minzoom: 6,
             filter: ["!", ["has", "point_count"]],
             paint: {
               "circle-radius": 18,
@@ -417,7 +446,6 @@ function MapView({
             id: "stores-pins",
             type: "symbol",
             source: "stores",
-            minzoom: 6,
             filter: ["!", ["has", "point_count"]],
             layout: {
               "icon-image": [
@@ -435,11 +463,7 @@ function MapView({
               "icon-ignore-placement": true,
             },
             paint: {
-              "icon-opacity": [
-                "interpolate", ["linear"], ["zoom"],
-                6, 0,
-                8, 1,
-              ],
+              "icon-opacity": 1,
             },
           });
 
@@ -523,16 +547,19 @@ function MapView({
             });
           };
 
-          // --- City mega-pin click: fly to city → show individual pins ---
-          const handleCityClick = (event: MapLayerMouseEvent) => {
+          // --- Click handlers ---
+          const handleClusterClick = (event: MapLayerMouseEvent) => {
             const feature = event.features?.[0];
             if (!feature) return;
             const coords = (feature.geometry as Point).coordinates as [number, number];
+            const level = getZoomLevel(map.getZoom());
             popupRef.current?.remove();
-            map.flyTo({ center: coords, zoom: 13, speed: 1.4, essential: true });
+            const targetZoom = level === 0 ? ZOOM_THRESHOLDS[0] + 1.5 : 14;
+            map.flyTo({ center: coords, zoom: targetZoom, speed: 1.4, essential: true });
           };
 
-          map.on("click", "city-hotspots-pin", handleCityClick);
+          map.on("click", "clusters-hit-area", handleClusterClick);
+          map.on("click", "clusters", handleClusterClick);
 
           let lastPinClickTime = 0;
           const handlePinClick = (event: MapLayerMouseEvent) => {
@@ -565,10 +592,12 @@ function MapView({
               isInteracting = true;
               map.getCanvas().style.cursor = "grabbing";
               map.setFilter("stores-pins-hover", ["==", ["get", "id"], -1]);
+              map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], -1]);
             });
             map.on("zoomstart", () => {
               isInteracting = true;
               map.setFilter("stores-pins-hover", ["==", ["get", "id"], -1]);
+              map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], -1]);
             });
             map.on("dragend", () => {
               isInteracting = false;
@@ -596,11 +625,23 @@ function MapView({
             map.on("mouseenter", "stores-pins", handlePinEnter);
             map.on("mouseleave", "stores-pins", handlePinLeave);
 
-            // City mega-pin hover: cursor pointer
-            const handleCityEnter = () => { if (!isInteracting) setCursor("pointer"); };
-            const handleCityLeave = () => setCursor("");
-            map.on("mouseenter", "city-hotspots-pin", handleCityEnter);
-            map.on("mouseleave", "city-hotspots-pin", handleCityLeave);
+            const handleClusterEnter = (e: MapLayerMouseEvent) => {
+              if (isInteracting) return;
+              setCursor("pointer");
+              const feature = e.features?.[0];
+              if (!feature) return;
+              const clusterId = feature.properties?.cluster_id as number | undefined;
+              if (clusterId == null) return;
+              map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], clusterId]);
+            };
+            const handleClusterLeave = () => {
+              setCursor("");
+              map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], -1]);
+            };
+            map.on("mouseenter", "clusters-hit-area", handleClusterEnter);
+            map.on("mouseleave", "clusters-hit-area", handleClusterLeave);
+            map.on("mouseenter", "clusters", handleClusterEnter);
+            map.on("mouseleave", "clusters", handleClusterLeave);
           }
         };
 
@@ -609,6 +650,19 @@ function MapView({
 
           onReady?.((lng, lat, zoom) => {
             map.flyTo({ center: [lng, lat], zoom, speed: 1.2, essential: true });
+          });
+
+          // Swap cluster dataset when crossing zoom thresholds — fires every frame during animation
+          let activeLevel: 0 | 1 | 2 = getZoomLevel(map.getZoom());
+          map.on("zoom", () => {
+            const newLevel = getZoomLevel(map.getZoom());
+            if (newLevel === activeLevel) return;
+            activeLevel = newLevel;
+            const src = map.getSource("stores") as GeoJSONSource | undefined;
+            if (!src) return;
+            if (newLevel === 0) src.setData(buildGridClusters(storesRef.current, GRID_SIZES[0]));
+            else if (newLevel === 1) src.setData(buildGridClusters(storesRef.current, GRID_SIZES[1]));
+            else src.setData(buildGeoJSON(storesRef.current));
           });
 
           const emitViewport = () => {
@@ -647,15 +701,12 @@ function MapView({
     const map = mapRef.current;
     if (!map) return;
     popupRef.current?.remove();
-
-    // Update city hotspots
-    const cityStats = buildCityStats(stores);
-    const citySource = map.getSource("city-hotspots") as GeoJSONSource | undefined;
-    citySource?.setData(buildCityHotspotsGeoJSON(cityStats));
-
-    // Update individual store pins (always populated)
     const source = map.getSource("stores") as GeoJSONSource | undefined;
-    source?.setData(buildGeoJSON(stores));
+    if (!source) return;
+    const level = getZoomLevel(map.getZoom());
+    if (level === 0) source.setData(buildGridClusters(stores, GRID_SIZES[0]));
+    else if (level === 1) source.setData(buildGridClusters(stores, GRID_SIZES[1]));
+    else source.setData(buildGeoJSON(stores));
   }, [stores]);
 
   const handleZoomOut = useCallback(() => {
