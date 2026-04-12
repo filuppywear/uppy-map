@@ -73,19 +73,18 @@ for (const size of [48, 62, 80]) {
   getBlobImage("/branding/cluster-dx.svg", size);
 }
 
-/* ─── 3-level fixed grid clustering ─────────────────── */
-// Zoom thresholds: crossing these swaps the cluster dataset
-// Level 0 (zoom < 3.5) shows CLICKABLE COUNTRY POLYGONS (not grid clusters)
-// Level 1 (3.5–7.5) shows small-grid clusters for cities
-// Level 2 (>= 7.5) shows individual pins
-const ZOOM_THRESHOLDS = [3.5, 7.5] as const;
-// Grid cell size in degrees for level 1; level 2 = individual pins
-const GRID_SIZES = [8, 0.8] as const;
+/* ─── 4-level semantic zoom ─────────────────────────── */
+// Level 0 (zoom < 3.5)        → clickable COUNTRY polygons
+// Level 1 (zoom 3.5 – 5.5)   → clickable REGION polygons (Natural Earth ADM1, lazy loaded)
+// Level 2 (zoom 5.5 – 7.5)   → clickable CITY hotspots (labels at store centroids)
+// Level 3 (zoom >= 7.5)       → individual store pins
+const ZOOM_THRESHOLDS = [3.5, 5.5, 7.5] as const;
 
-function getZoomLevel(zoom: number): 0 | 1 | 2 {
+function getZoomLevel(zoom: number): 0 | 1 | 2 | 3 {
   if (zoom < ZOOM_THRESHOLDS[0]) return 0;
   if (zoom < ZOOM_THRESHOLDS[1]) return 1;
-  return 2;
+  if (zoom < ZOOM_THRESHOLDS[2]) return 2;
+  return 3;
 }
 
 /* ─── Country polygon overlay ─────────────────────── */
@@ -157,34 +156,49 @@ function buildCountryFilter(stats: Map<string, CountryStat>): FilterSpecificatio
   return ["in", ["get", "name_en"], ["literal", names]];
 }
 
-function buildGridClusters(stores: Store[], gridDeg: number) {
-  const cells = new Map<string, { sumLat: number; sumLng: number; count: number }>();
+/* ─── City hotspots (from store data, not polygons) ─── */
+interface CityStat {
+  count: number;
+  lng: number;
+  lat: number;
+}
+
+function buildCityStats(stores: Store[]): Map<string, CityStat> {
+  const stats = new Map<string, { sumLng: number; sumLat: number; count: number }>();
   for (const store of stores) {
-    if (!hasStoreCoordinates(store)) continue;
-    const key = `${Math.floor(store.lat / gridDeg)}|${Math.floor(store.lng / gridDeg)}`;
-    if (!cells.has(key)) cells.set(key, { sumLat: 0, sumLng: 0, count: 0 });
-    const c = cells.get(key)!;
-    c.sumLat += store.lat;
-    c.sumLng += store.lng;
-    c.count++;
+    if (!hasStoreCoordinates(store) || !store.city) continue;
+    // key must be unique per city — disambiguate same-name cities via country
+    const key = `${store.city}|${store.country ?? ""}`;
+    const entry = stats.get(key) ?? { sumLng: 0, sumLat: 0, count: 0 };
+    entry.sumLng += store.lng;
+    entry.sumLat += store.lat;
+    entry.count += 1;
+    stats.set(key, entry);
   }
-  let id = 0;
-  const features: { type: "Feature"; geometry: { type: "Point"; coordinates: [number, number] }; properties: Record<string, unknown> }[] = [];
-  for (const cell of cells.values()) {
-    const count = cell.count;
-    features.push({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [cell.sumLng / count, cell.sumLat / count] },
-      properties: {
-        cluster: true,
-        id: id,
-        cluster_id: id++,
-        point_count: count,
-        point_count_abbreviated: count >= 1000 ? `${Math.floor(count / 1000)}k` : String(count),
-      },
-    });
+  const result = new Map<string, CityStat>();
+  for (const [key, s] of stats) {
+    result.set(key, { count: s.count, lng: s.sumLng / s.count, lat: s.sumLat / s.count });
   }
-  return { type: "FeatureCollection" as const, features };
+  return result;
+}
+
+function buildCityHotspotsGeoJSON(stats: Map<string, CityStat>) {
+  return {
+    type: "FeatureCollection" as const,
+    features: Array.from(stats.entries()).map(([key, s]) => {
+      const city = key.split("|")[0];
+      return {
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [s.lng, s.lat] as [number, number] },
+        properties: {
+          key,
+          name: city,
+          count: s.count,
+          count_label: s.count >= 1000 ? `${(s.count / 1000).toFixed(1)}k` : String(s.count),
+        },
+      };
+    }),
+  };
 }
 
 function buildGeoJSON(stores: Store[]) {
@@ -303,6 +317,9 @@ function MapView({
   const vpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countryStatsRef = useRef<Map<string, CountryStat>>(new Map());
   const hoveredCountryIdRef = useRef<number | string | null>(null);
+  const regionsLoadingRef = useRef(false);
+  const regionsLoadedRef = useRef(false);
+  const hoveredRegionIdRef = useRef<number | string | null>(null);
   const userMarkerRef = useRef<MapboxMarker | null>(null);
   const mapboxRef = useRef<MapboxModule["default"] | null>(null);
   const storesRef = useRef(stores);
@@ -432,11 +449,7 @@ function MapView({
           const emptyFC = { type: "FeatureCollection" as const, features: [] };
           map.addSource("stores", {
             type: "geojson",
-            data: initialLevel === 0
-              ? emptyFC
-              : initialLevel === 1
-              ? buildGridClusters(storesRef.current, GRID_SIZES[1])
-              : buildGeoJSON(storesRef.current),
+            data: initialLevel === 3 ? buildGeoJSON(storesRef.current) : emptyFC,
           });
 
           // --- Country polygon layer (level 0 only) ---
@@ -525,83 +538,135 @@ function MapView({
             },
           });
 
-          // --- Cluster layers (normal + hover) ---
+          // --- REGION layer (ADM1 polygons, lazy-loaded) ---
+          const REGION_MIN_ZOOM = ZOOM_THRESHOLDS[0]; // 3.5
+          const REGION_MAX_ZOOM = ZOOM_THRESHOLDS[1]; // 5.5
+
+          map.addSource("regions", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+            promoteId: "id",
+          });
+
           map.addLayer({
-            id: "clusters-hit-area",
+            id: "regions-fill",
+            type: "fill",
+            source: "regions",
+            minzoom: REGION_MIN_ZOOM,
+            maxzoom: REGION_MAX_ZOOM,
+            paint: {
+              "fill-color": "#A58277",
+              "fill-opacity": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                0.32,
+                0.14,
+              ],
+              "fill-opacity-transition": { duration: 150, delay: 0 },
+            },
+          });
+
+          map.addLayer({
+            id: "regions-line",
+            type: "line",
+            source: "regions",
+            minzoom: REGION_MIN_ZOOM,
+            maxzoom: REGION_MAX_ZOOM,
+            paint: {
+              "line-color": "#EBE9D9",
+              "line-opacity": 0.3,
+              "line-width": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                2,
+                1,
+              ],
+              "line-width-transition": { duration: 150, delay: 0 },
+            },
+          });
+
+          map.addLayer({
+            id: "regions-label",
+            type: "symbol",
+            source: "regions",
+            minzoom: REGION_MIN_ZOOM,
+            maxzoom: REGION_MAX_ZOOM,
+            layout: {
+              "text-field": ["upcase", ["coalesce", ["get", "n"], ["get", "name"], ""]],
+              "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+              "text-size": 12,
+              "text-allow-overlap": false,
+              "text-ignore-placement": false,
+              "text-padding": 6,
+              "symbol-placement": "point",
+            },
+            paint: {
+              "text-color": "#FFFFFF",
+              "text-halo-color": "rgba(45, 35, 35, 0.85)",
+              "text-halo-width": 1.2,
+            },
+          });
+
+          // --- CITY hotspot layer (store-derived labels) ---
+          const CITY_MIN_ZOOM = ZOOM_THRESHOLDS[1]; // 5.5
+          const CITY_MAX_ZOOM = ZOOM_THRESHOLDS[2]; // 7.5
+
+          const initialCityStats = buildCityStats(storesRef.current);
+          map.addSource("city-hotspots", {
+            type: "geojson",
+            data: buildCityHotspotsGeoJSON(initialCityStats),
+          });
+
+          map.addLayer({
+            id: "city-hotspots-hit",
             type: "circle",
-            source: "stores",
-            filter: ["has", "point_count"],
+            source: "city-hotspots",
+            minzoom: CITY_MIN_ZOOM,
+            maxzoom: CITY_MAX_ZOOM,
             paint: {
               "circle-radius": [
-                "step",
-                ["get", "point_count"],
-                20,
-                10,
-                26,
-                50,
-                34,
+                "interpolate", ["linear"], ["get", "count"],
+                1, 18,
+                50, 26,
+                500, 34,
+                2000, 42,
               ],
-              "circle-opacity": 0,
+              "circle-color": "#2D2323",
+              "circle-opacity": 0.72,
+              "circle-stroke-color": "#EBE9D9",
+              "circle-stroke-width": 1,
+              "circle-stroke-opacity": 0.25,
             },
           });
 
           map.addLayer({
-            id: "clusters",
+            id: "city-hotspots-label",
             type: "symbol",
-            source: "stores",
-            filter: ["has", "point_count"],
+            source: "city-hotspots",
+            minzoom: CITY_MIN_ZOOM,
+            maxzoom: CITY_MAX_ZOOM,
             layout: {
-              "icon-image": [
-                "step",
-                ["get", "point_count"],
-                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-48", "blob-dx-48"],
-                10,
-                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-62", "blob-dx-62"],
-                50,
-                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-80", "blob-dx-80"],
+              "text-field": ["format",
+                ["upcase", ["get", "name"]], { "font-scale": 1 },
+                "\n", {},
+                ["get", "count_label"], { "font-scale": 0.8 },
               ],
-              "icon-rotate": ["%", ["*", ["get", "cluster_id"], 37], 40],
-              "icon-rotation-alignment": "map",
-              "icon-allow-overlap": true,
-              "icon-ignore-placement": true,
-              "text-field": ["get", "point_count_abbreviated"],
-              "text-size": 12,
               "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+              "text-size": [
+                "interpolate", ["linear"], ["get", "count"],
+                1, 10,
+                50, 12,
+                500, 14,
+                2000, 16,
+              ],
+              "text-allow-overlap": false,
+              "text-ignore-placement": false,
+              "text-padding": 4,
             },
             paint: {
               "text-color": "#FFFFFF",
-              "icon-opacity-transition": { duration: 300, delay: 0 },
-              "text-opacity-transition": { duration: 300, delay: 0 },
-            },
-          });
-
-          // --- Cluster hover layer (slightly bigger on desktop hover) ---
-          map.addLayer({
-            id: "clusters-hover",
-            type: "symbol",
-            source: "stores",
-            filter: ["==", ["get", "cluster_id"], -1],
-            layout: {
-              "icon-image": [
-                "step",
-                ["get", "point_count"],
-                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-48", "blob-dx-48"],
-                10,
-                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-62", "blob-dx-62"],
-                50,
-                ["case", ["==", ["%", ["get", "cluster_id"], 2], 0], "blob-sx-80", "blob-dx-80"],
-              ],
-              "icon-rotate": ["%", ["*", ["get", "cluster_id"], 37], 40],
-              "icon-rotation-alignment": "map",
-              "icon-allow-overlap": true,
-              "icon-ignore-placement": true,
-              "icon-size": 1.15,
-              "text-field": ["get", "point_count_abbreviated"],
-              "text-size": 13,
-              "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
-            },
-            paint: {
-              "text-color": "#FFFFFF",
+              "text-halo-color": "rgba(45, 35, 35, 0.9)",
+              "text-halo-width": 1.2,
             },
           });
 
@@ -722,21 +787,7 @@ function MapView({
             });
           };
 
-          // --- Click handlers ---
-          const handleClusterClick = (event: MapLayerMouseEvent) => {
-            const feature = event.features?.[0];
-            if (!feature) return;
-            const coords = (feature.geometry as Point).coordinates as [number, number];
-            const level = getZoomLevel(map.getZoom());
-            popupRef.current?.remove();
-            const targetZoom = level === 0 ? ZOOM_THRESHOLDS[0] + 1.5 : 14;
-            map.flyTo({ center: coords, zoom: targetZoom, speed: 1.4, essential: true });
-          };
-
-          map.on("click", "clusters-hit-area", handleClusterClick);
-          map.on("click", "clusters", handleClusterClick);
-
-          // --- Country polygon click: fly into that country ---
+          // --- Country polygon click: fly into that country → region view ---
           const handleCountryClick = (event: MapLayerMouseEvent) => {
             const feature = event.features?.[0];
             if (!feature) return;
@@ -747,13 +798,60 @@ function MapView({
             const stats = countryStatsRef.current.get(name);
             if (!stats) return;
             popupRef.current?.remove();
-            // Fly just past the level 0 -> level 1 threshold so pins/clusters take over
-            const targetZoom = ZOOM_THRESHOLDS[0] + 1.5;
+            // Fly just past country → region threshold so ADM1 regions take over
+            const targetZoom = ZOOM_THRESHOLDS[0] + 0.5;
             map.flyTo({ center: [stats.lng, stats.lat], zoom: targetZoom, speed: 1.4, essential: true });
           };
 
           map.on("click", "countries-fill", handleCountryClick);
           map.on("click", "countries-label", handleCountryClick);
+
+          // --- Region polygon click: fly to centroid of the region ---
+          const handleRegionClick = (event: MapLayerMouseEvent) => {
+            const feature = event.features?.[0];
+            if (!feature) return;
+            // Compute centroid from the polygon bbox (good enough for flyTo target)
+            const geom = feature.geometry;
+            if (!geom) return;
+            let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+            const visitRing = (ring: number[][]) => {
+              for (const [x, y] of ring) {
+                if (x < minLng) minLng = x;
+                if (x > maxLng) maxLng = x;
+                if (y < minLat) minLat = y;
+                if (y > maxLat) maxLat = y;
+              }
+            };
+            if (geom.type === "Polygon") {
+              visitRing((geom as unknown as { coordinates: number[][][] }).coordinates[0]);
+            } else if (geom.type === "MultiPolygon") {
+              for (const poly of (geom as unknown as { coordinates: number[][][][] }).coordinates) {
+                visitRing(poly[0]);
+              }
+            } else {
+              return;
+            }
+            const centerLng = (minLng + maxLng) / 2;
+            const centerLat = (minLat + maxLat) / 2;
+            popupRef.current?.remove();
+            // Fly just past region → city threshold so city hotspots take over
+            map.flyTo({ center: [centerLng, centerLat], zoom: ZOOM_THRESHOLDS[1] + 0.5, speed: 1.4, essential: true });
+          };
+
+          map.on("click", "regions-fill", handleRegionClick);
+          map.on("click", "regions-label", handleRegionClick);
+
+          // --- City hotspot click: fly to city, pin view takes over ---
+          const handleCityClick = (event: MapLayerMouseEvent) => {
+            const feature = event.features?.[0];
+            if (!feature) return;
+            const coords = (feature.geometry as Point).coordinates as [number, number];
+            popupRef.current?.remove();
+            map.flyTo({ center: coords, zoom: ZOOM_THRESHOLDS[2] + 1.5, speed: 1.4, essential: true });
+          };
+
+          map.on("click", "city-hotspots-hit", handleCityClick);
+          map.on("click", "city-hotspots-label", handleCityClick);
 
           let lastPinClickTime = 0;
           const handlePinClick = (event: MapLayerMouseEvent) => {
@@ -786,12 +884,10 @@ function MapView({
               isInteracting = true;
               map.getCanvas().style.cursor = "grabbing";
               map.setFilter("stores-pins-hover", ["==", ["get", "id"], -1]);
-              map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], -1]);
             });
             map.on("zoomstart", () => {
               isInteracting = true;
               map.setFilter("stores-pins-hover", ["==", ["get", "id"], -1]);
-              map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], -1]);
             });
             map.on("dragend", () => {
               isInteracting = false;
@@ -818,24 +914,6 @@ function MapView({
             map.on("mouseleave", "stores-hit-area", handlePinLeave);
             map.on("mouseenter", "stores-pins", handlePinEnter);
             map.on("mouseleave", "stores-pins", handlePinLeave);
-
-            const handleClusterEnter = (e: MapLayerMouseEvent) => {
-              if (isInteracting) return;
-              setCursor("pointer");
-              const feature = e.features?.[0];
-              if (!feature) return;
-              const clusterId = feature.properties?.cluster_id as number | undefined;
-              if (clusterId == null) return;
-              map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], clusterId]);
-            };
-            const handleClusterLeave = () => {
-              setCursor("");
-              map.setFilter("clusters-hover", ["==", ["get", "cluster_id"], -1]);
-            };
-            map.on("mouseenter", "clusters-hit-area", handleClusterEnter);
-            map.on("mouseleave", "clusters-hit-area", handleClusterLeave);
-            map.on("mouseenter", "clusters", handleClusterEnter);
-            map.on("mouseleave", "clusters", handleClusterLeave);
 
             // Country hover (fill opacity bump via feature-state)
             const clearCountryHover = () => {
@@ -866,6 +944,41 @@ function MapView({
             };
             map.on("mousemove", "countries-fill", handleCountryEnter);
             map.on("mouseleave", "countries-fill", handleCountryLeave);
+
+            // Region hover (fill opacity bump)
+            const clearRegionHover = () => {
+              if (hoveredRegionIdRef.current != null) {
+                map.setFeatureState(
+                  { source: "regions", id: hoveredRegionIdRef.current },
+                  { hover: false }
+                );
+                hoveredRegionIdRef.current = null;
+              }
+            };
+            const handleRegionEnter = (e: MapLayerMouseEvent) => {
+              if (isInteracting) return;
+              setCursor("pointer");
+              const feature = e.features?.[0];
+              if (!feature || feature.id == null) return;
+              if (hoveredRegionIdRef.current === feature.id) return;
+              clearRegionHover();
+              hoveredRegionIdRef.current = feature.id;
+              map.setFeatureState({ source: "regions", id: feature.id }, { hover: true });
+            };
+            const handleRegionLeave = () => {
+              setCursor("");
+              clearRegionHover();
+            };
+            map.on("mousemove", "regions-fill", handleRegionEnter);
+            map.on("mouseleave", "regions-fill", handleRegionLeave);
+
+            // City hotspot hover: just cursor change (circle is already visible)
+            const handleCityEnter = () => { if (!isInteracting) setCursor("pointer"); };
+            const handleCityLeave = () => setCursor("");
+            map.on("mouseenter", "city-hotspots-hit", handleCityEnter);
+            map.on("mouseleave", "city-hotspots-hit", handleCityLeave);
+            map.on("mouseenter", "city-hotspots-label", handleCityEnter);
+            map.on("mouseleave", "city-hotspots-label", handleCityLeave);
           }
         };
 
@@ -876,19 +989,43 @@ function MapView({
             map.flyTo({ center: [lng, lat], zoom, speed: 1.2, essential: true });
           });
 
-          // Swap cluster dataset when crossing zoom thresholds — fires every frame during animation
-          let activeLevel: 0 | 1 | 2 = getZoomLevel(map.getZoom());
+          // Swap datasets when crossing zoom thresholds
+          let activeLevel: 0 | 1 | 2 | 3 = getZoomLevel(map.getZoom());
           const emptyCollection = { type: "FeatureCollection" as const, features: [] };
+
+          // Trigger region data load on first entry into level 1
+          const ensureRegionsLoaded = () => {
+            if (regionsLoadedRef.current || regionsLoadingRef.current) return;
+            regionsLoadingRef.current = true;
+            fetch("/data/regions.json")
+              .then((r) => r.json())
+              .then((data) => {
+                regionsLoadedRef.current = true;
+                regionsLoadingRef.current = false;
+                const src = map.getSource("regions") as GeoJSONSource | undefined;
+                src?.setData(data);
+              })
+              .catch((err) => {
+                regionsLoadingRef.current = false;
+                console.error("Failed to load regions:", err);
+              });
+          };
+
+          if (activeLevel === 1) ensureRegionsLoaded();
+
           map.on("zoom", () => {
             const newLevel = getZoomLevel(map.getZoom());
             if (newLevel === activeLevel) return;
             activeLevel = newLevel;
+
+            // Lazy-load regions the first time we need them
+            if (newLevel === 1) ensureRegionsLoaded();
+
+            // Stores source: only populated at level 3 (individual pins)
             const src = map.getSource("stores") as GeoJSONSource | undefined;
             if (!src) return;
-            // Level 0: countries take over, leave stores source empty
-            if (newLevel === 0) src.setData(emptyCollection);
-            else if (newLevel === 1) src.setData(buildGridClusters(storesRef.current, GRID_SIZES[1]));
-            else src.setData(buildGeoJSON(storesRef.current));
+            if (newLevel === 3) src.setData(buildGeoJSON(storesRef.current));
+            else src.setData(emptyCollection);
           });
 
           const emitViewport = () => {
@@ -932,19 +1069,23 @@ function MapView({
     const newStats = buildCountryStats(stores);
     countryStatsRef.current = newStats;
 
-    const labelSource = map.getSource("country-labels") as GeoJSONSource | undefined;
-    labelSource?.setData(buildCountryLabelsGeoJSON(newStats));
+    const countryLabelSource = map.getSource("country-labels") as GeoJSONSource | undefined;
+    countryLabelSource?.setData(buildCountryLabelsGeoJSON(newStats));
 
     const countryFilter = buildCountryFilter(newStats);
     if (map.getLayer("countries-fill")) map.setFilter("countries-fill", countryFilter);
     if (map.getLayer("countries-line")) map.setFilter("countries-line", countryFilter);
 
+    // Rebuild city hotspots for level 2
+    const cityStats = buildCityStats(stores);
+    const citySource = map.getSource("city-hotspots") as GeoJSONSource | undefined;
+    citySource?.setData(buildCityHotspotsGeoJSON(cityStats));
+
     const source = map.getSource("stores") as GeoJSONSource | undefined;
     if (!source) return;
     const level = getZoomLevel(map.getZoom());
-    if (level === 0) source.setData({ type: "FeatureCollection", features: [] });
-    else if (level === 1) source.setData(buildGridClusters(stores, GRID_SIZES[1]));
-    else source.setData(buildGeoJSON(stores));
+    if (level === 3) source.setData(buildGeoJSON(stores));
+    else source.setData({ type: "FeatureCollection", features: [] });
   }, [stores]);
 
   const handleZoomOut = useCallback(() => {
