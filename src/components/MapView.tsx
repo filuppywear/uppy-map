@@ -465,19 +465,23 @@ function MapView({
 
           const COUNTRY_MAX_ZOOM = ZOOM_THRESHOLDS[0];
 
-          // --- Continent labels (visible at lowest zoom, clickable) ---
-          const continentFeatures = Object.entries(CONTINENT_CENTERS).map(([name, c]) => ({
-            type: "Feature" as const,
-            geometry: { type: "Point" as const, coordinates: [c.lng, c.lat] as [number, number] },
-            properties: { name },
-          }));
+          // Insert fill layers BELOW map labels so text stays readable
+          const firstSymbolId = map.getStyle()?.layers?.find(l => l.type === "symbol")?.id;
 
-          // Continent source kept for click interaction (no visible labels)
-          map.addSource("continent-labels", {
-            type: "geojson",
-            data: { type: "FeatureCollection", features: continentFeatures },
-          });
+          // Background fill: ALL countries in grey
+          map.addLayer({
+            id: "countries-fill-bg",
+            type: "fill",
+            source: "country-boundaries",
+            "source-layer": "country_boundaries",
+            maxzoom: COUNTRY_MAX_ZOOM,
+            paint: {
+              "fill-color": "#d0ccc6",
+              "fill-opacity": 1,
+            },
+          }, firstSymbolId);
 
+          // Foreground fill: OUR countries in dark Uppy brown
           map.addLayer({
             id: "countries-fill",
             type: "fill",
@@ -486,41 +490,30 @@ function MapView({
             maxzoom: COUNTRY_MAX_ZOOM,
             filter: buildCountryFilter(initialCountryStats),
             paint: {
-              "fill-color": "#614439",
-              "fill-opacity": [
+              "fill-color": [
                 "case",
                 ["boolean", ["feature-state", "hover"], false],
-                0.35,
-                0.08,
+                "#614439",
+                "#2D2323",
               ],
+              "fill-opacity": 1,
               "fill-opacity-transition": { duration: 200, delay: 0 },
             },
-          });
+          }, firstSymbolId);
 
+          // Borders between all countries
           map.addLayer({
             id: "countries-line",
             type: "line",
             source: "country-boundaries",
             "source-layer": "country_boundaries",
             maxzoom: COUNTRY_MAX_ZOOM,
-            filter: buildCountryFilter(initialCountryStats),
             paint: {
-              "line-color": "#614439",
-              "line-opacity": [
-                "case",
-                ["boolean", ["feature-state", "hover"], false],
-                0.6,
-                0.12,
-              ],
-              "line-width": [
-                "case",
-                ["boolean", ["feature-state", "hover"], false],
-                2,
-                1,
-              ],
-              "line-width-transition": { duration: 200, delay: 0 },
+              "line-color": "#EBE9D9",
+              "line-opacity": 0.25,
+              "line-width": 0.8,
             },
-          });
+          }, firstSymbolId);
 
           // Country labels removed — the map's own place names are enough.
           // Country polygons are clickable via countries-fill.
@@ -552,12 +545,19 @@ function MapView({
                 3, "pin-3",
                 "pin-0",
               ],
-              "icon-size": [
-                "interpolate", ["linear"], ["get", "count"],
-                1, 1.8,
-                50, 2.2,
-                500, 2.6,
-                2000, 3.0,
+              // Grow from size 0 at min zoom to full size at max zoom
+              "icon-size": ["*",
+                ["interpolate", ["linear"], ["zoom"],
+                  CITY_MIN_ZOOM, 0,
+                  CITY_MIN_ZOOM + 0.5, 0.4,
+                  CITY_MAX_ZOOM, 1,
+                ],
+                ["interpolate", ["linear"], ["get", "count"],
+                  1, 1.8,
+                  50, 2.2,
+                  500, 2.6,
+                  2000, 3.0,
+                ],
               ],
               "icon-anchor": "bottom",
               "icon-allow-overlap": true,
@@ -889,12 +889,8 @@ function MapView({
     const newStats = buildCountryStats(stores);
     countryStatsRef.current = newStats;
 
-    const countryLabelSource = map.getSource("country-labels") as GeoJSONSource | undefined;
-    countryLabelSource?.setData(buildCountryLabelsGeoJSON(newStats));
-
     const countryFilter = buildCountryFilter(newStats);
     if (map.getLayer("countries-fill")) map.setFilter("countries-fill", countryFilter);
-    if (map.getLayer("countries-line")) map.setFilter("countries-line", countryFilter);
 
     // Rebuild city hotspots for level 2
     const cityStats = buildCityStats(stores);
