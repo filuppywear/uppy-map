@@ -181,15 +181,15 @@ export default function MarketPage() {
       {/* ════════════════════════════════════════════
           1 · WAITLIST BANNER
           ════════════════════════════════════════════ */}
-      <div style={{ background: "#EBE9D9" }}>
+      <div style={{ background: "#fff" }}>
         <div className="mx-auto max-w-[1400px] px-6 lg:px-10 py-3.5 flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-center sm:text-left flex-1" style={{ color: "#2D2323" }}>
             {submitted ? "You're on the list. We'll be in touch." : "Üppy Market is launching soon — join the waitlist"}
           </p>
           {!submitted && (
             <form onSubmit={handleSubmit} className="flex gap-2 w-full sm:w-auto">
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" required className="flex-1 sm:w-60 px-3.5 py-2.5 text-xs" style={{ background: "transparent", border: "1.5px solid rgba(45,35,35,0.22)", color: "#2D2323", outline: "none" }} />
-              <button type="submit" disabled={submitting} className="px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] shrink-0" style={{ background: "#2D2323", color: "#EBE9D9", border: "none", cursor: "pointer", opacity: submitting ? 0.5 : 1 }}>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" required className="flex-1 sm:w-60 px-3.5 py-2.5 text-xs" style={{ background: "transparent", border: "1.5px solid rgba(45,35,35,0.18)", color: "#2D2323", outline: "none" }} />
+              <button type="submit" disabled={submitting} className="px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] shrink-0" style={{ background: "#2D2323", color: "#fff", border: "none", cursor: "pointer", opacity: submitting ? 0.5 : 1, transition: "opacity 0.15s" }}>
                 {submitting ? "..." : "Join"}
               </button>
             </form>
@@ -229,17 +229,17 @@ export default function MarketPage() {
               ))}
             </h1>
 
-            <p className="text-sm sm:text-[15px] leading-[1.75] max-w-md mb-10" style={{ color: "rgba(255,255,255,0.48)", animation: "hero-text-reveal 0.9s cubic-bezier(0.16,1,0.3,1) 0.5s both" }}>
+            <p className="text-sm sm:text-[15px] leading-[1.75] max-w-md mb-10" style={{ color: "rgba(255,255,255,0.6)", animation: "hero-text-reveal 0.9s cubic-bezier(0.16,1,0.3,1) 0.5s both" }}>
               The marketplace that connects you directly with independent vintage,
               thrift, and secondhand stores worldwide. No middlemen. No fast fashion.
               Every purchase supports a real store, run by real people.
             </p>
 
             <div className="flex flex-wrap gap-3" style={{ animation: "hero-text-reveal 0.9s cubic-bezier(0.16,1,0.3,1) 0.65s both" }}>
-              <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="h-13 px-8 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ height: 52, background: "#EBE9D9", color: "#2D2323", border: "none", cursor: "pointer" }}>
+              <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="h-13 px-8 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ height: 52, background: "#fff", color: "#2D2323", border: "none", cursor: "pointer" }}>
                 Join the waitlist
               </button>
-              <Link href="/" className="flex items-center justify-center h-13 px-8 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ height: 52, background: "transparent", color: "#fff", border: "1.5px solid rgba(255,255,255,0.18)", textDecoration: "none" }}>
+              <Link href="/" className="flex items-center justify-center h-13 px-8 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ height: 52, background: "transparent", color: "rgba(255,255,255,0.7)", border: "1.5px solid rgba(255,255,255,0.18)", textDecoration: "none" }}>
                 Explore the map
               </Link>
             </div>
@@ -294,7 +294,7 @@ export default function MarketPage() {
             <h2 className="text-2xl sm:text-[2rem] font-black uppercase leading-[1.05] tracking-[-0.02em] mb-6" style={{ color: "#fff", fontFamily: "var(--font-display)" }}>
               Independent stores are invisible online
             </h2>
-            <p className="text-sm leading-[1.85]" style={{ color: "rgba(255,255,255,0.42)" }}>
+            <p className="text-sm leading-[1.85]" style={{ color: "rgba(255,255,255,0.55)" }}>
               The best secondhand stores in the world — the ones with real curation, decades of
               expertise, and racks full of pieces you won't find anywhere else — have no way to
               reach you online. They're buried under marketplace algorithms that favor volume
@@ -305,15 +305,14 @@ export default function MarketPage() {
           {/* The answer */}
           <div className="reveal reveal-d2">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-5" style={{ color: "#A58277" }}>The answer</p>
-            <span className="block font-black uppercase leading-none tracking-[-0.04em]" style={{ fontSize: "clamp(4rem, 9vw, 7rem)", color: "#A58277", opacity: 0.13, fontFamily: "var(--font-display)" }}>3%</span>
-            <h2 className="text-2xl sm:text-[2rem] font-black uppercase leading-[1.05] tracking-[-0.02em] mb-6 -mt-4" style={{ color: "#fff", fontFamily: "var(--font-display)" }}>
-              A marketplace built for the stores first
+            <h2 className="text-2xl sm:text-[2rem] font-black uppercase leading-[1.05] tracking-[-0.02em] mb-6" style={{ color: "#fff", fontFamily: "var(--font-display)" }}>
+              Sell online, comfortably and organized
             </h2>
-            <p className="text-sm leading-[1.85]" style={{ color: "rgba(255,255,255,0.42)" }}>
-              Üppy Market gives independent stores the infrastructure they deserve — real
-              visibility, the lowest commissions in the industry, and tools that sync with what
-              they already use. No listing fees. No buried results. Just the store's own pieces,
-              presented the way the store intends, reaching the people who actually care.
+            <p className="text-sm leading-[1.85]" style={{ color: "rgba(255,255,255,0.55)" }}>
+              Üppy Market gives independent stores a simple way to bring their inventory online —
+              synced with the tools they already use, presented beautifully, and reaching people who
+              actually care about what they sell. No complicated setup. No algorithm to fight.
+              Just your store, your pieces, your way.
             </p>
           </div>
         </div>
@@ -322,12 +321,12 @@ export default function MarketPage() {
       {/* ════════════════════════════════════════════
           5 · CATEGORIES
           ════════════════════════════════════════════ */}
-      <section className="py-24 sm:py-32 lg:py-36" style={{ background: "#EBE9D9" }}>
+      <section className="py-24 sm:py-32 lg:py-36" style={{ background: "#fff" }}>
         <div className="mx-auto max-w-[1400px] px-6 lg:px-10 mb-10">
           <div className="reveal">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4" style={{ color: "#A58277" }}>10 categories</p>
             <h2 className="text-2xl sm:text-[2rem] font-black uppercase leading-[1.05] tracking-[-0.02em]" style={{ color: "#2D2323", fontFamily: "var(--font-display)" }}>
-              Every corner of secondhand
+              Every kind of secondhand
             </h2>
           </div>
         </div>
@@ -409,7 +408,7 @@ export default function MarketPage() {
                 <h3 className="text-base font-black uppercase tracking-[-0.01em] mb-4" style={{ color: "#fff", fontFamily: "var(--font-display)" }}>
                   {step.title}
                 </h3>
-                <p className="text-xs leading-[1.75]" style={{ color: "rgba(255,255,255,0.42)" }}>
+                <p className="text-xs leading-[1.75]" style={{ color: "rgba(255,255,255,0.55)" }}>
                   {step.desc}
                 </p>
               </div>
@@ -431,25 +430,25 @@ export default function MarketPage() {
             <div className="reveal">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-5" style={{ color: "#A58277" }}>For stores</p>
               <h2 className="text-2xl sm:text-[2rem] font-black uppercase leading-[1.05] tracking-[-0.02em] mb-6" style={{ color: "#fff", fontFamily: "var(--font-display)" }}>
-                Built for the shops that care
+                Your store, online in minutes
               </h2>
-              <p className="text-sm leading-[1.8] mb-10" style={{ color: "rgba(255,255,255,0.42)" }}>
-                Üppy Market was designed alongside independent store owners. We know
-                your margins are tight and your time is limited. That's why we charge the
-                lowest commissions in the industry — with zero listing fees and zero monthly costs.
+              <p className="text-sm leading-[1.8] mb-10" style={{ color: "rgba(255,255,255,0.55)" }}>
+                We built Üppy Market alongside independent store owners. Connect the tools
+                you already use, upload your inventory, and start reaching customers worldwide —
+                without the tech headache. Fair fees, no surprises, and a platform that works for you.
               </p>
               <div className="flex flex-col gap-6">
                 {[
-                  { label: "3% commission", sub: "The lowest in the industry. Period." },
-                  { label: "Zero listing fees", sub: "List unlimited pieces. We only earn when you do." },
-                  { label: "Sync your tools", sub: "Connect Shopify, WooCommerce, Square, or manage manually." },
-                  { label: "Your brand, your page", sub: "Your store identity stays front and center. Always." },
+                  { label: "Sync your inventory", sub: "Connect Shopify, WooCommerce, Square, or upload manually." },
+                  { label: "Organized and beautiful", sub: "Your pieces, your categories, your brand — presented properly." },
+                  { label: "Fair, transparent fees", sub: "The lowest commissions in the industry. No listing costs, no monthly fees." },
+                  { label: "Global reach, local soul", sub: "Customers find you by city, category, or style. Your identity stays yours." },
                 ].map((item) => (
                   <div key={item.label} className="flex items-start gap-4">
                     <span className="shrink-0 w-1.5 h-1.5 mt-2" style={{ background: "#A58277" }} />
                     <div>
                       <span className="text-sm font-bold block" style={{ color: "#fff" }}>{item.label}</span>
-                      <span className="text-xs block mt-0.5" style={{ color: "rgba(255,255,255,0.38)" }}>{item.sub}</span>
+                      <span className="text-xs block mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>{item.sub}</span>
                     </div>
                   </div>
                 ))}
@@ -459,7 +458,7 @@ export default function MarketPage() {
             {/* Right — commission chart */}
             <div className="reveal reveal-d2" ref={barsRef}>
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] mb-8" style={{ color: "rgba(255,255,255,0.25)" }}>
-                Commission comparison
+                How fees compare
               </p>
 
               <div className="flex flex-col gap-3 mb-5">
@@ -496,8 +495,8 @@ export default function MarketPage() {
               <p className="text-[11px] mt-5 leading-[1.6]" style={{ color: "rgba(255,255,255,0.22)" }}>
                 + standard payment processing. No hidden fees. No listing costs. No monthly subscription.
               </p>
-              <p className="text-xs mt-4 font-bold" style={{ color: "rgba(255,255,255,0.4)" }}>
-                Sell a $100 item on eBay: <span style={{ color: "rgba(255,255,255,0.6)" }}>$13 in fees</span>. On Üppy: <span style={{ color: "#A58277" }}>$3</span>.
+              <p className="text-xs mt-4" style={{ color: "rgba(255,255,255,0.35)" }}>
+                We believe stores should keep more of what they earn.
               </p>
             </div>
           </div>
@@ -507,20 +506,20 @@ export default function MarketPage() {
       {/* ════════════════════════════════════════════
           8 · STATS
           ════════════════════════════════════════════ */}
-      <section className="py-20 sm:py-28" style={{ background: "#EBE9D9" }}>
+      <section className="py-20 sm:py-28" style={{ borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-10 sm:gap-6">
             {[
               { value: "9,000+", label: "Independent stores" },
               { value: "60+", label: "Countries" },
               { value: "230+", label: "Cities" },
-              { value: "3%", label: "Commission" },
+              { value: "10+", label: "Integrations" },
             ].map((stat) => (
               <div key={stat.label} className="reveal">
-                <span className="block font-black uppercase tracking-[-0.03em]" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", color: "#2D2323", fontFamily: "var(--font-display)", lineHeight: 1 }}>
+                <span className="block font-black uppercase tracking-[-0.03em]" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", color: "#fff", fontFamily: "var(--font-display)", lineHeight: 1 }}>
                   {stat.value}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.12em] block mt-2" style={{ color: "rgba(45,35,35,0.4)" }}>
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] block mt-2" style={{ color: "rgba(255,255,255,0.35)" }}>
                   {stat.label}
                 </span>
               </div>
@@ -538,14 +537,14 @@ export default function MarketPage() {
           <h2 className="text-3xl sm:text-[clamp(2.5rem,5vw,4rem)] font-black uppercase leading-[0.95] tracking-[-0.03em] mb-6" style={{ color: "#fff", fontFamily: "var(--font-display)" }}>
             Be part of the<br />first wave
           </h2>
-          <p className="text-sm mb-10 max-w-md mx-auto" style={{ color: "rgba(255,255,255,0.38)" }}>
+          <p className="text-sm mb-10 max-w-md mx-auto" style={{ color: "rgba(255,255,255,0.5)" }}>
             We'll notify you when Üppy Market goes live. Early members get priority access.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="h-13 px-8 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ height: 52, background: "#EBE9D9", color: "#2D2323", border: "none", cursor: "pointer" }}>
+            <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="h-13 px-8 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ height: 52, background: "#fff", color: "#2D2323", border: "none", cursor: "pointer" }}>
               Join the waitlist
             </button>
-            <Link href="/" className="flex items-center justify-center h-13 px-8 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ height: 52, background: "transparent", color: "#fff", border: "1.5px solid rgba(255,255,255,0.18)", textDecoration: "none" }}>
+            <Link href="/" className="flex items-center justify-center h-13 px-8 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ height: 52, background: "transparent", color: "rgba(255,255,255,0.7)", border: "1.5px solid rgba(255,255,255,0.18)", textDecoration: "none" }}>
               Explore the map
             </Link>
           </div>
