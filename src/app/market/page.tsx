@@ -88,42 +88,12 @@ function IntegrationLogo({ name }: { name: string }) {
           <text x="35" y="23" textAnchor="middle" fill="#F56400" fontWeight="700" fontStyle="italic" fontSize="24" fontFamily="Georgia,serif">Etsy</text>
         </svg>
       );
-    case "Depop":
-      return (
-        <svg viewBox="0 0 90 32" {...common}>
-          <text x="45" y="23" textAnchor="middle" fill="#fff" fontWeight="900" fontSize="22" fontFamily="'Arial Black',sans-serif" letterSpacing="-0.5">depop</text>
-        </svg>
-      );
-    case "Vinted":
-      return (
-        <svg viewBox="0 0 100 32" {...common}>
-          <text x="50" y="22" textAnchor="middle" fill="#09B1BA" fontWeight="600" fontSize="22" fontFamily="sans-serif">vinted</text>
-        </svg>
-      );
-    case "Square":
-      return (
-        <svg viewBox="0 0 100 32" {...common}>
-          <text x="50" y="22" textAnchor="middle" fill="#fff" fontWeight="500" fontSize="21" fontFamily="'Helvetica Neue',sans-serif" letterSpacing="0.5">Square</text>
-        </svg>
-      );
-    case "Lightspeed":
-      return (
-        <svg viewBox="0 0 140 32" {...common}>
-          <text x="70" y="22" textAnchor="middle" fill="#E4002B" fontWeight="800" fontSize="18" fontFamily="sans-serif" letterSpacing="-0.3">LIGHTSPEED</text>
-        </svg>
-      );
-    case "BigCommerce":
-      return (
-        <svg viewBox="0 0 150 32" {...common}>
-          <text x="75" y="22" textAnchor="middle" fill="#fff" fontWeight="600" fontSize="19" fontFamily="sans-serif">BigCommerce</text>
-        </svg>
-      );
     default:
       return <span style={{ color: "rgba(255,255,255,0.3)", fontWeight: 700, fontSize: 14, textTransform: "uppercase", letterSpacing: "0.08em" }}>{name}</span>;
   }
 }
 
-const INTEGRATION_NAMES = ["Shopify", "WooCommerce", "eBay", "Discogs", "Etsy", "Depop", "Vinted", "Square", "Lightspeed", "BigCommerce"];
+const INTEGRATION_NAMES = ["Shopify", "WooCommerce", "eBay", "Etsy", "Discogs"];
 
 /* ═══════════════════════════════════════════════════════
    PAGE
@@ -439,7 +409,7 @@ export default function MarketPage() {
               </p>
               <div className="flex flex-col gap-6">
                 {[
-                  { label: "Sync your inventory", sub: "Connect Shopify, WooCommerce, Square, or upload manually." },
+                  { label: "Sync your inventory", sub: "Connect Shopify, WooCommerce, eBay, Etsy, Discogs — or upload manually." },
                   { label: "Organized and beautiful", sub: "Your pieces, your categories, your brand — presented properly." },
                   { label: "Fair, transparent fees", sub: "The lowest commissions in the industry. No listing costs, no monthly fees." },
                   { label: "Global reach, local soul", sub: "Customers find you by city, category, or style. Your identity stays yours." },
@@ -513,7 +483,7 @@ export default function MarketPage() {
               { value: "9,000+", label: "Independent stores" },
               { value: "60+", label: "Countries" },
               { value: "230+", label: "Cities" },
-              { value: "10+", label: "Integrations" },
+              { value: "5", label: "Integrations" },
             ].map((stat) => (
               <div key={stat.label} className="reveal">
                 <span className="block font-black uppercase tracking-[-0.03em]" style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", color: "#fff", fontFamily: "var(--font-display)", lineHeight: 1 }}>
