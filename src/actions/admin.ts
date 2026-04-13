@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase-server";
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "fil@uppy.style,filippo@uppy.market").split(",").map(e => e.trim());
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "fil@uppy.style,filippo@uppy.market,fil@uppy.market").split(",").map(e => e.trim());
 
 async function requireAdmin() {
   const supabase = await createClient();
