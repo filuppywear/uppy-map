@@ -10,16 +10,16 @@ import PageHeader from "@/components/PageHeader";
    ═══════════════════════════════════════════════════════ */
 
 const CATEGORIES = [
-  { name: "Vintage", slug: "vintage", desc: "Decades of character. Pre-loved pieces from the '50s to the '00s." },
-  { name: "Thrift", slug: "thrift", desc: "The hunt is the point. Affordable, unpredictable, always rewarding." },
-  { name: "Designer Resale", slug: "designer-resale", desc: "Authenticated luxury. Second owners, first-class pieces." },
-  { name: "Streetwear", slug: "streetwear", desc: "Deadstock drops and grails. The culture, not the hype machine." },
-  { name: "Antique", slug: "antique", desc: "Before fast fashion existed. Craftsmanship that outlived its era." },
-  { name: "Consignment", slug: "consignment", desc: "Curated by store owners who know what matters." },
-  { name: "Flea Market", slug: "flea-market", desc: "The chaos is the charm. One-of-a-kind everything." },
-  { name: "Charity", slug: "charity", desc: "Every purchase gives twice. Style with a conscience." },
-  { name: "Outlet", slug: "outlet", desc: "Overstock from brands that care. Discounted, not discarded." },
-  { name: "Curated", slug: "curated", desc: "Handpicked by people with taste. No algorithm required." },
+  { name: "Clothing", slug: "clothing", desc: "Jackets, shirts, dresses, denim — decades of style, ready to wear again." },
+  { name: "Accessories", slug: "accessories", desc: "Bags, belts, jewelry, scarves. The details that make the outfit." },
+  { name: "Shoes", slug: "shoes", desc: "Sneakers, boots, loafers. Broken in by someone, perfect for you." },
+  { name: "Books", slug: "books", desc: "First editions, rare finds, dog-eared favorites. Stories with stories." },
+  { name: "Music", slug: "music", desc: "Vinyl, CDs, cassettes. Sound you can hold in your hands." },
+  { name: "Film", slug: "film", desc: "DVDs, Blu-rays, VHS. Cinema you actually own." },
+  { name: "Design Objects", slug: "design-objects", desc: "Furniture, ceramics, lighting. Pieces that shaped how we live." },
+  { name: "Art & Prints", slug: "art", desc: "Original works, limited editions, vintage posters. Walls deserve better." },
+  { name: "Retrogaming", slug: "retrogaming", desc: "Consoles, cartridges, controllers. Play the way it was meant to be." },
+  { name: "Action Figures", slug: "action-figures", desc: "Collectibles, figurines, model kits. Childhood, preserved." },
 ];
 
 const COMPETITORS = [
@@ -294,9 +294,9 @@ export default function MarketPage() {
       <section className="py-24 sm:py-32 lg:py-36" style={{ background: "#fff" }}>
         <div className="mx-auto max-w-[1400px] px-6 lg:px-10 mb-10">
           <div className="reveal">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4" style={{ color: "#A58277" }}>10 categories</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4" style={{ color: "#A58277" }}>Categories</p>
             <h2 className="text-2xl sm:text-[2rem] font-black uppercase leading-[1.05] tracking-[-0.02em]" style={{ color: "#2D2323", fontFamily: "var(--font-display)" }}>
-              Every kind of secondhand
+              Not just clothes
             </h2>
           </div>
         </div>
