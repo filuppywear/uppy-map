@@ -92,6 +92,48 @@ body {
   100% { transform: translateX(-33.333%); }
 }
 
+/* ── Market landing page ── */
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes hero-text-reveal {
+  from { opacity: 0; transform: translateY(50px) skewY(1.5deg); }
+  to { opacity: 1; transform: translateY(0) skewY(0); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@keyframes bar-grow {
+  from { width: 0; }
+  to { width: var(--bar-w); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(36px);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-d1 { transition-delay: 0.1s; }
+.reveal-d2 { transition-delay: 0.2s; }
+.reveal-d3 { transition-delay: 0.3s; }
+.reveal-d4 { transition-delay: 0.4s; }
+
+.cat-card { transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+.cat-card:hover { transform: translateY(-6px); }
+
+.bar-anim { animation: bar-grow 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+.ticker-mask {
+  -webkit-mask-image: linear-gradient(to right, transparent, black 100px, black calc(100% - 100px), transparent);
+  mask-image: linear-gradient(to right, transparent, black 100px, black calc(100% - 100px), transparent);
+}
+
 button,
 a {
   touch-action: manipulation;
