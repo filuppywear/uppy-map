@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
-  activePage?: "map" | "leaderboard";
+  activePage?: "map" | "leaderboard" | "market";
 }
 
 export default function PageHeader({ activePage }: Props) {
@@ -26,7 +26,7 @@ export default function PageHeader({ activePage }: Props) {
     <div className="sticky top-0 z-30" style={{ background: "#2D2323" }}>
       <div className="hidden lg:flex items-center h-12 px-4 md:px-8" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
         <nav className="flex items-center gap-5">
-          <Link href="/?market=1" className="header-btn font-bold uppercase flex items-center gap-1.5" style={{ ...linkStyle(false), color: "rgba(255,255,255,0.5)" }}>
+          <Link href="/market" className="header-btn font-bold uppercase flex items-center gap-1.5" style={linkStyle(activePage === "market")}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
             Market
           </Link>

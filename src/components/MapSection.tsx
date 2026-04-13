@@ -23,7 +23,6 @@ import { getProfile } from "@/actions/profile";
 import OnboardingWall from "./OnboardingWall";
 import { AnimatedNumber } from "./AnimatedNumber";
 import FeedbackChat from "./FeedbackChat";
-import MarketCarousel from "./MarketCarousel";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false });
@@ -170,7 +169,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchPlaceholder, setSearchPlaceholder] = useState("Search stores...");
-  const [marketNotice, setMarketNotice] = useState(false);
+  const marketNotice = false; // kept for scroll lock compat
   const [showAuthPopup, setShowAuthPopup] = useState(false);
   const [savedIds, setSavedIds] = useState<number[]>([]);
   const [showNewStoreForm, setShowNewStoreForm] = useState(false);
@@ -209,7 +208,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
     if (!mobileMenuOpen && !marketNotice) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (marketNotice) setMarketNotice(false);
+      // marketNotice removed — /market is now a page
       if (mobileMenuOpen) setMobileMenuOpen(false);
     };
     window.addEventListener("keydown", onKey);
@@ -270,13 +269,13 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
     void getUserFavoriteIds().then(setSavedIds);
   }, [isLoggedIn]);
 
+  // Legacy ?market=1 query param → redirect to /market page
   useEffect(() => {
     if (phase !== "app" || marketQuery !== "1" || marketIntentHandledRef.current) return;
     marketIntentHandledRef.current = true;
-    if (isLoggedIn) setMarketNotice(true);
-    else setShowAuthPopup(true);
     replaceQuery((params) => params.delete("market"));
-  }, [isLoggedIn, marketQuery, phase, replaceQuery]);
+    window.location.href = "/market";
+  }, [marketQuery, phase, replaceQuery]);
 
   const handleToggleSave = useCallback(async (storeId: number) => {
     if (!isLoggedIn) { setShowAuthPopup(true); return; }
@@ -558,10 +557,10 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
           <div className="hidden lg:flex items-center h-12 px-4 md:px-8" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
             {/* Left: nav links */}
             <nav className="flex items-center gap-5">
-              <button onClick={() => isLoggedIn ? setMarketNotice(true) : setShowAuthPopup(true)} className="header-btn uppercase flex items-center gap-1.5" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "Inter, sans-serif", color: "rgba(255,255,255,0.7)", background: "none", border: "none", cursor: "pointer" }}>
+              <Link href="/market" className="header-btn uppercase flex items-center gap-1.5" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "Inter, sans-serif", color: "rgba(255,255,255,0.7)", textDecoration: "none" }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                 Market
-              </button>
+              </Link>
               <button onClick={() => { handleGeoNavigateTo(0); setView("map"); closeAll(); }} className="header-btn uppercase" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "Inter, sans-serif", color: "#fff", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "4px", textDecorationThickness: "1px" }}>Map</button>
               <Link href="/leaderboard" className="header-btn uppercase" style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "Inter, sans-serif", color: "rgba(255,255,255,0.7)", textDecoration: "none" }}>Leaderboard</Link>
             </nav>
@@ -813,7 +812,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
 
       <StoreDetailModal key={selectedStore?.id ?? "empty"} store={selectedStore} onClose={handleCloseStore} isSaved={selectedStore ? savedIds.includes(selectedStore.id) : false} onToggleSave={handleToggleSave} />
 
-      {marketNotice && <MarketCarousel onClose={() => setMarketNotice(false)} />}
+      {/* Market is now a dedicated page at /market */}
 
       {showAuthPopup && <WaitlistPopup onClose={() => setShowAuthPopup(false)} />}
       {showNewStoreForm && <ProposalForm mode="new" onClose={() => setShowNewStoreForm(false)} onSuccess={() => setShowNewStoreForm(false)} />}
