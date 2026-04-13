@@ -23,6 +23,7 @@ import { getProfile } from "@/actions/profile";
 import OnboardingWall from "./OnboardingWall";
 import { AnimatedNumber } from "./AnimatedNumber";
 import FeedbackChat from "./FeedbackChat";
+import MarketCarousel from "./MarketCarousel";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false });
@@ -812,23 +813,7 @@ export default function MapSection({ initialStats = DEFAULT_STATS }: { initialSt
 
       <StoreDetailModal key={selectedStore?.id ?? "empty"} store={selectedStore} onClose={handleCloseStore} isSaved={selectedStore ? savedIds.includes(selectedStore.id) : false} onToggleSave={handleToggleSave} />
 
-      {marketNotice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(18,12,12,0.75)", backdropFilter: "blur(4px)" }} onClick={() => setMarketNotice(false)}>
-          <div className="relative w-full max-w-sm p-8 text-center" style={{ background: "#2D2323" }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setMarketNotice(false)} className="header-btn absolute top-3 right-3" style={{ width: 32, height: 32, background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-            <svg className="mx-auto mb-4" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-            <h2 className="text-lg font-bold uppercase tracking-tight mb-2" style={{ color: "#fff", fontFamily: "'Montserrat', var(--font-display)" }}>Uppy Market</h2>
-            <p className="text-sm mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>
-              {isLoggedIn
-                ? "You're on the waitlist. We'll notify you as soon as Uppy Market is available."
-                : "The marketplace is coming soon. Sign up to join the waitlist."}
-            </p>
-            <p className="text-xs mt-4" style={{ color: "rgba(255,255,255,0.3)" }}>Powered by Uppy</p>
-          </div>
-        </div>
-      )}
+      {marketNotice && <MarketCarousel onClose={() => setMarketNotice(false)} />}
 
       {showAuthPopup && <WaitlistPopup onClose={() => setShowAuthPopup(false)} />}
       {showNewStoreForm && <ProposalForm mode="new" onClose={() => setShowNewStoreForm(false)} onSuccess={() => setShowNewStoreForm(false)} />}
